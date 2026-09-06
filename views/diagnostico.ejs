@@ -305,6 +305,32 @@
 
             tbody.innerHTML = bodyHtml;
 
+            if (estudiantesDiag.length > 0) {
+                let promCols = [];
+                for (let i = 0; i < numDestrezas; i++) {
+                    let suma = 0, count = 0;
+                    document.querySelectorAll(`input[data-idx="${i}"]`).forEach(inp => {
+                        const v = parseFloat(inp.value);
+                        if (!isNaN(v)) { suma += v; count++; }
+                    });
+                    promCols.push(count > 0 ? (suma / count).toFixed(2) : '-');
+                }
+
+                let totalSuma = 0, totalCt = 0;
+                document.querySelectorAll(`.total-cell[data-est]`).forEach(el => {
+                    const v = parseFloat(el.textContent);
+                    if (!isNaN(v) && v > 0) { totalSuma += v; totalCt++; }
+                });
+                const promGeneral = totalCt > 0 ? (totalSuma / totalCt).toFixed(2) : '-';
+
+                let promRow = `<tr class="table-secondary fw-bold"><td>PROMEDIOS</td>`;
+                promCols.forEach(p => {
+                    promRow += `<td class="text-center">${p}</td>`;
+                });
+                promRow += `<td class="text-center">${promGeneral}</td><td></td></tr>`;
+                tbody.innerHTML += promRow;
+            }
+
             document.getElementById('totalEstudiantes').textContent = estudiantesDiag.length;
             document.getElementById('countDomina').textContent = countD;
             document.getElementById('countAlcanza').textContent = countA;
