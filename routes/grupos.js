@@ -6,6 +6,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
         let query = `
             SELECT g.id, g.nombre_grupo, g.materia_id, m.nombre_materia, m.curso, m.paralelo, m.especialidad,
@@ -13,10 +14,11 @@ router.get('/', async (req, res) => {
             FROM grupos g
             INNER JOIN materias m ON g.materia_id = m.id
             INNER JOIN estudiantes e ON g.estudiante_id = e.id
+            WHERE g.anio_lectivo = ?
         `;
-        const params = [];
+        const params = [anio];
         if (user.rol === 'docente') {
-            query += ' WHERE m.docente_id = ?';
+            query += ' AND m.docente_id = ?';
             params.push(user.id);
         }
         query += ' ORDER BY g.nombre_grupo, e.nombres_apellidos';
@@ -31,16 +33,18 @@ router.get('/', async (req, res) => {
 router.get('/list', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
         let query = `
             SELECT MIN(g.id) as id, g.nombre_grupo, g.materia_id, m.nombre_materia, m.curso, m.paralelo, m.especialidad,
                    COUNT(g.estudiante_id) as total_estudiantes
             FROM grupos g
             INNER JOIN materias m ON g.materia_id = m.id
+            WHERE g.anio_lectivo = ?
         `;
-        const params = [];
+        const params = [anio];
         if (user.rol === 'docente') {
-            query += ' WHERE m.docente_id = ?';
+            query += ' AND m.docente_id = ?';
             params.push(user.id);
         }
         query += ' GROUP BY g.nombre_grupo, g.materia_id, m.nombre_materia, m.curso, m.paralelo, m.especialidad ORDER BY g.nombre_grupo';
@@ -78,7 +82,9 @@ router.get('/por-materia/:materia_id/estudiantes', async (req, res) => {
 // Asignar estudiantes a una materia (solo agrega/quita sin destruir grupo_ids existentes)
 router.post('/asignar-materia', async (req, res) => {
     const db = req.db;
+    const user = req.session.user;
     const { materia_id, estudiante_ids } = req.body;
+    const anio = user.anio_lectivo || '2026-2027';
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
@@ -96,8 +102,8 @@ router.post('/asignar-materia', async (req, res) => {
         
         // Obtener estudiantes actualmente asignados
         const [actuales] = await conn.query(
-            'SELECT estudiante_id FROM grupos WHERE materia_id = ?',
-            [materia_id]
+            'SELECT estudiante_id FROM grupos WHERE materia_id = ? AND anio_lectivo = ?',
+            [materia_id, anio]
         );
         const actualesIds = actuales.map(a => a.estudiante_id);
         const nuevosIds = estudiante_ids || [];
@@ -106,8 +112,8 @@ router.post('/asignar-materia', async (req, res) => {
         for (const eid of nuevosIds) {
             if (!actualesIds.includes(eid)) {
                 await conn.query(
-                    'INSERT IGNORE INTO grupos (nombre_grupo, materia_id, estudiante_id) VALUES (?, ?, ?)',
-                    [nombreGrupo, materia_id, eid]
+                    'INSERT IGNORE INTO grupos (nombre_grupo, materia_id, estudiante_id, school_id, anio_lectivo) VALUES (?, ?, ?, ?, ?)',
+                    [nombreGrupo, materia_id, eid, user.school_id, anio]
                 );
             }
         }
@@ -205,7 +211,9 @@ router.get('/:id/estudiantes', async (req, res) => {
 // Crear un grupo y asignar múltiples estudiantes a una materia
 router.post('/', async (req, res) => {
     const db = req.db;
+    const user = req.session.user;
     const { nombre_grupo, materia_id, estudiante_ids } = req.body;
+    const anio = user.anio_lectivo || '2026-2027';
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
@@ -214,16 +222,16 @@ router.post('/', async (req, res) => {
         if (estudiante_ids && Array.isArray(estudiante_ids) && estudiante_ids.length > 0) {
             for (const eid of estudiante_ids) {
                 await conn.query(
-                    'INSERT IGNORE INTO grupos (nombre_grupo, materia_id, estudiante_id) VALUES (?, ?, ?)',
-                    [nombre_grupo, materia_id, eid]
+                    'INSERT IGNORE INTO grupos (nombre_grupo, materia_id, estudiante_id, school_id, anio_lectivo) VALUES (?, ?, ?, ?, ?)',
+                    [nombre_grupo, materia_id, eid, user.school_id, anio]
                 );
             }
         }
         
         // Obtener el ID del primer estudiante insertado como identificador del grupo
         const [grupoRows] = await conn.query(
-            'SELECT id FROM grupos WHERE nombre_grupo = ? AND materia_id = ? LIMIT 1',
-            [nombre_grupo, materia_id]
+            'SELECT id FROM grupos WHERE nombre_grupo = ? AND materia_id = ? AND anio_lectivo = ? LIMIT 1',
+            [nombre_grupo, materia_id, anio]
         );
         
         await conn.commit();
@@ -239,7 +247,9 @@ router.post('/', async (req, res) => {
 // Asignar estudiantes a un grupo existente (por nombre_grupo + materia_id)
 router.post('/asignar', async (req, res) => {
     const db = req.db;
+    const user = req.session.user;
     const { nombre_grupo, materia_id, estudiante_ids } = req.body;
+    const anio = user.anio_lectivo || '2026-2027';
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
@@ -247,8 +257,8 @@ router.post('/asignar', async (req, res) => {
         if (estudiante_ids && Array.isArray(estudiante_ids) && estudiante_ids.length > 0) {
             for (const eid of estudiante_ids) {
                 await conn.query(
-                    'INSERT IGNORE INTO grupos (nombre_grupo, materia_id, estudiante_id) VALUES (?, ?, ?)',
-                    [nombre_grupo, materia_id, eid]
+                    'INSERT IGNORE INTO grupos (nombre_grupo, materia_id, estudiante_id, school_id, anio_lectivo) VALUES (?, ?, ?, ?, ?)',
+                    [nombre_grupo, materia_id, eid, user.school_id, anio]
                 );
             }
         }

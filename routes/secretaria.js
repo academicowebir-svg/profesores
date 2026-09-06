@@ -13,13 +13,33 @@ router.get('/estudiantes', async (req, res) => {
     try {
         const db = req.db;
         const schoolId = req.session.user.school_id;
+        const anio = req.session.user.anio_lectivo || '2026-2027';
         const [rows] = await db.query(
-            'SELECT * FROM estudiantes WHERE school_id = ? ORDER BY nombres_apellidos',
-            [schoolId]
+            'SELECT * FROM estudiantes WHERE school_id = ? AND anio_lectivo = ? ORDER BY nombres_apellidos',
+            [schoolId, anio]
         );
         res.json(rows);
     } catch (err) {
         console.error('Error al listar estudiantes:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Buscar estudiantes de años anteriores (para auto-completar matrícula)
+router.get('/buscar-anteriores', async (req, res) => {
+    try {
+        const db = req.db;
+        const schoolId = req.session.user.school_id;
+        const anioActual = req.session.user.anio_lectivo || '2026-2027';
+        const { cedula } = req.query;
+        if (!cedula) return res.json(null);
+        const [rows] = await db.query(
+            'SELECT * FROM estudiantes WHERE cedula = ? AND school_id = ? AND anio_lectivo != ? ORDER BY anio_lectivo DESC LIMIT 1',
+            [cedula, schoolId, anioActual]
+        );
+        res.json(rows.length > 0 ? rows[0] : null);
+    } catch (err) {
+        console.error('Error al buscar estudiantes anteriores:', err);
         res.status(500).json({ error: err.message });
     }
 });

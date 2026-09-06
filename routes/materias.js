@@ -5,11 +5,12 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
-        let query = 'SELECT * FROM materias';
-        const params = [];
+        let query = 'SELECT * FROM materias WHERE anio_lectivo = ?';
+        const params = [anio];
         if (user.rol === 'docente') {
-            query += ' WHERE docente_id = ?';
+            query += ' AND docente_id = ?';
             params.push(user.id);
         }
         query += ' ORDER BY nombre_materia';
@@ -45,10 +46,11 @@ router.post('/', async (req, res) => {
         return res.status(403).json({ error: 'Solo el rector puede crear materias' });
     }
     const { nombre_materia, curso, paralelo, especialidad, docente_id } = req.body;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
         const [result] = await db.query(
-            'INSERT INTO materias (nombre_materia, curso, paralelo, especialidad, docente_id, school_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [nombre_materia, curso, paralelo, especialidad || null, docente_id || null, user.school_id]
+            'INSERT INTO materias (nombre_materia, curso, paralelo, especialidad, docente_id, school_id, anio_lectivo) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [nombre_materia, curso, paralelo, especialidad || null, docente_id || null, user.school_id, anio]
         );
         res.json({ id: result.insertId, message: 'Materia registrada exitosamente' });
     } catch (err) {

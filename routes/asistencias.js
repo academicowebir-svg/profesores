@@ -124,6 +124,8 @@ router.post('/grupo', async (req, res) => {
 // Buscar asistencia de un estudiante por cedula o nombre (todas las materias) - ANTES de /:grupo_id
 router.get('/buscar-estudiante', async (req, res) => {
     const db = req.db;
+    const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     const { busqueda } = req.query;
     if (!busqueda) {
         return res.json([]);
@@ -139,9 +141,9 @@ router.get('/buscar-estudiante', async (req, res) => {
             INNER JOIN materias m ON g.materia_id = m.id
             INNER JOIN estudiantes e ON g.estudiante_id = e.id
             LEFT JOIN justificaciones j ON j.asistencia_id = a.id
-            WHERE e.cedula LIKE ? OR e.nombres_apellidos LIKE ?
+            WHERE g.anio_lectivo = ? AND (e.cedula LIKE ? OR e.nombres_apellidos LIKE ?)
             ORDER BY m.nombre_materia, a.fecha
-        `, [`%${busqueda}%`, `%${busqueda}%`]);
+        `, [anio, `%${busqueda}%`, `%${busqueda}%`]);
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -185,6 +187,8 @@ router.get('/grupo/:grupo_id', async (req, res) => {
 // Obtener faltas agrupadas por curso (todas las materias del periodo)
 router.get('/faltas-por-curso', async (req, res) => {
     const db = req.db;
+    const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
         const [rows] = await db.query(`
             SELECT 
@@ -202,10 +206,11 @@ router.get('/faltas-por-curso', async (req, res) => {
             INNER JOIN estudiantes e ON g.estudiante_id = e.id
             LEFT JOIN asistencias a ON a.grupo_id = g.id
             LEFT JOIN justificaciones j ON j.asistencia_id = a.id
+            WHERE g.anio_lectivo = ?
             GROUP BY m.nombre_materia, m.curso, m.paralelo, m.especialidad, e.cedula, e.nombres_apellidos
             HAVING total_faltas > 0
             ORDER BY m.nombre_materia, e.nombres_apellidos
-        `);
+        `, [anio]);
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });

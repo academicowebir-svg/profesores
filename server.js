@@ -78,7 +78,8 @@ app.post('/login', async (req, res) => {
             cedula: user.cedula,
             nombre: user.nombre,
             rol: user.rol,
-            school_id: user.school_id
+            school_id: user.school_id,
+            anio_lectivo: '2026-2027'
         };
 
         req.session.save((err) => {
@@ -94,6 +95,35 @@ app.post('/login', async (req, res) => {
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/login');
+});
+
+// ========== CAMBIO DE AÑO LECTIVO ==========
+
+app.get('/api/years', requireAuth, async (req, res) => {
+    try {
+        const db = getPool();
+        const [rows] = await db.query(
+            'SELECT DISTINCT anio_lectivo FROM estudiantes WHERE school_id = ? ORDER BY anio_lectivo DESC',
+            [req.session.user.school_id]
+        );
+        const years = rows.map(r => r.anio_lectivo).filter(Boolean);
+        if (!years.includes('2026-2027')) years.unshift('2026-2027');
+        res.json(years);
+    } catch (err) {
+        res.json(['2026-2027']);
+    }
+});
+
+app.post('/api/change-year', requireAuth, (req, res) => {
+    const { anio_lectivo } = req.body;
+    if (!anio_lectivo) {
+        return res.status(400).json({ error: 'Año lectivo requerido' });
+    }
+    req.session.user.anio_lectivo = anio_lectivo;
+    req.session.save((err) => {
+        if (err) return res.status(500).json({ error: 'Error guardando sesion' });
+        res.json({ message: 'Año lectivo cambiado a ' + anio_lectivo, anio_lectivo });
+    });
 });
 
 // ========== RUTAS ==========

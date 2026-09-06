@@ -63,15 +63,17 @@ router.get('/grupo/:grupo_id/trimestre/:trimestre', async (req, res) => {
 router.get('/materias', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
         let query = `
             SELECT DISTINCT m.id, m.nombre_materia, m.curso, m.paralelo, m.especialidad, m.docente_id
             FROM materias m
             INNER JOIN grupos g ON m.id = g.materia_id
+            WHERE g.anio_lectivo = ?
         `;
-        const params = [];
+        const params = [anio];
         if (user.rol === 'docente') {
-            query += ' WHERE m.docente_id = ?';
+            query += ' AND m.docente_id = ?';
             params.push(user.id);
         }
         query += ' ORDER BY m.nombre_materia, m.curso, m.paralelo';
@@ -86,6 +88,7 @@ router.get('/materias', async (req, res) => {
 router.get('/grupos', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
+    const anio = user.anio_lectivo || '2026-2027';
     try {
         let query = `
             SELECT DISTINCT m.curso, m.paralelo, m.especialidad,
@@ -93,10 +96,11 @@ router.get('/grupos', async (req, res) => {
             FROM grupos g
             INNER JOIN materias m ON g.materia_id = m.id
             INNER JOIN estudiantes e ON g.estudiante_id = e.id AND e.activo = 1
+            WHERE g.anio_lectivo = ?
         `;
-        const params = [];
+        const params = [anio];
         if (user.rol === 'docente') {
-            query += ' WHERE m.docente_id = ?';
+            query += ' AND m.docente_id = ?';
             params.push(user.id);
         }
         query += ' GROUP BY m.curso, m.paralelo, m.especialidad ORDER BY m.curso, m.paralelo';

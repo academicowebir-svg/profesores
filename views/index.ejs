@@ -21,7 +21,11 @@
                                 <img src="/images/sucua2.png" alt="Logo" style="width:50px; height:50px; border-radius:50%; margin-right:8px;">
                                 Sistema de Gestion Academica
                             </h1>
-                            <p class="mb-0 mt-2">Periodo: 2026-2027</p>
+                            <div class="mt-2">
+                                <label class="text-white-50 me-2">Periodo:</label>
+                                <select id="selectorAnio" class="form-select form-select-sm d-inline-block w-auto" onchange="cambiarAnio(this.value)">
+                                </select>
+                            </div>
                             <p class="mb-0 mt-1">
                                 <small>
                                     <% const rolLabels = {docente:'Docente',secretaria:'Secretaria',rector:'Rector',inspector:'Inspector'}; %>
@@ -154,5 +158,39 @@
             </div>
         </div>
     </div>
+    <script>
+        const anioActual = '<%= user.anio_lectivo || "2026-2027" %>';
+
+        document.addEventListener('DOMContentLoaded', cargarAnios);
+
+        async function cargarAnios() {
+            try {
+                const res = await fetch('/api/years');
+                const years = await res.json();
+                const select = document.getElementById('selectorAnio');
+                select.innerHTML = years.map(y =>
+                    `<option value="${y}" ${y === anioActual ? 'selected' : ''}>${y}</option>`
+                ).join('');
+            } catch (err) {
+                document.getElementById('selectorAnio').innerHTML = '<option value="2026-2027">2026-2027</option>';
+            }
+        }
+
+        async function cambiarAnio(year) {
+            try {
+                const res = await fetch('/api/change-year', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ anio_lectivo: year })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    window.location.reload();
+                }
+            } catch (err) {
+                alert('Error al cambiar año lectivo');
+            }
+        }
+    </script>
 </body>
 </html>
