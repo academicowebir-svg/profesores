@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Usuarios</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/main.js" defer></script>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center py-3">
+                        <h2 class="mb-0"><i class="fas fa-users-cog me-2"></i>Gestion de Usuarios</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <button class="btn btn-success" onclick="abrirModalAgregar()">
+                                <i class="fas fa-user-plus me-1"></i>Agregar Usuario
+                            </button>
+                            <a href="/" class="btn btn-primary"><i class="fas fa-home me-1"></i>Menu</a>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-dark text-center">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Cedula</th>
+                                        <th>Nombre</th>
+                                        <th>Clave</th>
+                                        <th>Estado</th>
+                                        <th>Rol</th>
+                                        <th>Escuela</th>
+                                        <th>Creado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% usuarios.forEach(u => { %>
+                                    <tr>
+                                        <td class="text-center"><%= u.id %></td>
+                                        <td class="text-center"><%= u.cedula %></td>
+                                        <td><%= u.nombre %></td>
+                                        <td><%= u.password %></td>
+                                        <td class="text-center">
+                                            <% if (u.estado) { %>
+                                                <span class="badge bg-success">Activo</span>
+                                            <% } else { %>
+                                                <span class="badge bg-danger">Inactivo</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-center">
+                                            <% if (u.rol === 'admin') { %>
+                                                <span class="badge bg-dark">Admin</span>
+                                            <% } else if (u.rol === 'rector') { %>
+                                                <span class="badge bg-danger">Rector</span>
+                                            <% } else if (u.rol === 'secretaria') { %>
+                                                <span class="badge bg-info">Secretaria</span>
+                                            <% } else { %>
+                                                <span class="badge bg-primary">Docente</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-center">
+                                            <% const school = schools.find(s => s.id === u.school_id); %>
+                                            <%= school ? school.nombre : '-' %>
+                                        </td>
+                                        <td class="text-center"><%= new Date(u.created_at).toLocaleDateString() %></td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-warning" onclick='abrirModalEditar(<%= JSON.stringify(u) %>)' title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(<%= u.id %>, '<%= u.nombre %>')" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar -->
+    <div class="modal fade" id="modalAgregar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Agregar Usuario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formAgregar" onsubmit="agregarUsuario(event)">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cedula</label>
+                            <input type="text" class="form-control" name="cedula" required placeholder="Ingrese cedula">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" required placeholder="Ingrese nombre">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Contrasena</label>
+                            <input type="password" class="form-control" name="password" required placeholder="Ingrese contrasena">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Rol</label>
+                            <select class="form-select" name="rol" required>
+                                <option value="docente">Docente</option>
+                                <option value="secretaria">Secretaria</option>
+                                <option value="rector">Rector</option>
+                                <option value="inspector">Inspector</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Escuela</label>
+                            <select class="form-select" name="school_id">
+                                <option value="">Sin escuela</option>
+                                <% schools.forEach(s => { %>
+                                    <option value="<%= s.id %>"><%= s.nombre %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar -->
+    <div class="modal fade" id="modalEditar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditar" onsubmit="editarUsuario(event)">
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="editId">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cedula</label>
+                            <input type="text" class="form-control" id="editCedula" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre</label>
+                            <input type="text" class="form-control" name="nombre" id="editNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nueva Contrasena <small class="text-muted">(dejar vacio para no cambiar)</small></label>
+                            <input type="password" class="form-control" name="password" id="editPassword" placeholder="Dejar vacio si no cambia">
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="estado" id="editEstado">
+                            <label class="form-check-label" for="editEstado">Activo</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Rol</label>
+                            <select class="form-select" name="rol" id="editRol" required>
+                                <option value="docente">Docente</option>
+                                <option value="secretaria">Secretaria</option>
+                                <option value="rector">Rector</option>
+                                <option value="inspector">Inspector</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Escuela</label>
+                            <select class="form-select" name="school_id" id="editSchool">
+                                <option value="">Sin escuela</option>
+                                <% schools.forEach(s => { %>
+                                    <option value="<%= s.id %>"><%= s.nombre %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalAgregar() {
+            document.getElementById('formAgregar').reset();
+            new bootstrap.Modal(document.getElementById('modalAgregar')).show();
+        }
+
+        function abrirModalEditar(u) {
+            document.getElementById('editId').value = u.id;
+            document.getElementById('editCedula').value = u.cedula;
+            document.getElementById('editNombre').value = u.nombre;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editEstado').checked = u.estado === 1;
+            document.getElementById('editRol').value = u.rol || 'docente';
+            document.getElementById('editSchool').value = u.school_id || '';
+            new bootstrap.Modal(document.getElementById('modalEditar')).show();
+        }
+
+        async function agregarUsuario(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = new FormData(form);
+            try {
+                const res = await fetch('/api/admin/agregar', {
+                    method: 'POST',
+                    body: new URLSearchParams(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification(result.message, 'danger');
+                }
+            } catch (err) {
+                showNotification('Error al agregar usuario', 'danger');
+            }
+        }
+
+        async function editarUsuario(e) {
+            e.preventDefault();
+            const form = e.target;
+            const id = document.getElementById('editId').value;
+            const data = new FormData(form);
+            try {
+                const res = await fetch(`/api/admin/editar/${id}`, {
+                    method: 'PUT',
+                    body: new URLSearchParams(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification(result.message, 'danger');
+                }
+            } catch (err) {
+                showNotification('Error al editar usuario', 'danger');
+            }
+        }
+
+        async function eliminarUsuario(id, nombre) {
+            if (!confirm(`Esta seguro de eliminar al usuario "${nombre}"?`)) return;
+            try {
+                const res = await fetch(`/api/admin/eliminar/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification(result.message, 'danger');
+                }
+            } catch (err) {
+                showNotification('Error al eliminar usuario', 'danger');
+            }
+        }
+    </script>
+</body>
+</html>

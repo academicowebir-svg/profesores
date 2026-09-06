@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="/js/main.js" defer></script>
+    <script src="/js/informes.js" defer></script>
+    <style>
+        .informe-box { border: 2px solid #000; padding: 10px; }
+        .informe-header { background-color: #b3d4fc; border: 2px solid #000; padding: 8px; font-weight: bold; text-align: center; }
+        .informe-label { background-color: #b3d4fc; border: 2px solid #000; padding: 4px; font-weight: bold; font-size: 0.8em; }
+        .informe-cell { border: 2px solid #000; padding: 6px; vertical-align: middle; }
+        .informe-input { border: none; border-bottom: 1px solid #999; width: 100%; padding: 4px; background: transparent; }
+        .informe-textarea { border: 2px solid #000; width: 100%; min-height: 80px; padding: 6px; resize: vertical; }
+        .informe-table { border-collapse: collapse; width: 100%; font-size: 0.75em; }
+        .informe-table th, .informe-table td { border: 2px solid #000; padding: 3px; text-align: center; }
+        .firma-line { border-bottom: 1px solid #000; width: 100%; display: inline-block; margin-top: 40px; }
+        @media print {
+            .informe-table { font-size: 0.75em; }
+            .informe-table th, .informe-table td { padding: 3px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><img src="/images/sucua2.png" alt="Logo" style="width:40px; height:40px; border-radius:50%; margin-right:8px;">Sistema Academico</a>
+            <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-home me-1"></i>Menu Principal</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-file-contract me-2"></i>Informes - Documentos Formales</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Curso / Grupo</label>
+                        <select id="informeGrupoSelect" class="form-select">
+                            <option value="">Seleccionar curso...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Trimestre</label>
+                        <select id="informeTrimestre" class="form-select" onchange="actualizarTipoInforme()">
+                            <option value="1">1er Trimestre</option>
+                            <option value="2">2do Trimestre</option>
+                            <option value="3" selected>3er Trimestre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Tipo de Informe</label>
+                        <select id="tipoInforme" class="form-select">
+                            <option value="acta">Acta de Calificaciones</option>
+                            <option value="asignatura">Informe Final</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-success w-100" onclick="generarInforme()"><i class="fas fa-file-pdf me-1"></i>Generar</button>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-12 text-end">
+                        <button class="btn btn-danger" onclick="exportarPDFInforme()" id="btnExportarPDF" style="display:none;"><i class="fas fa-file-pdf me-1"></i>Exportar PDF</button>
+                    </div>
+                </div>
+
+                <div id="contenidoInforme" class="mt-3" style="display:none;">
+
+                    <!-- ACTA DE CALIFICACIONES -->
+                    <div id="contenedorActa" style="display:none;">
+                        <div class="text-center mb-4">
+                            <h3 id="actaTitulo">ACTA DE CALIFICACIONES</h3>
+                            <p id="actaSubtitulo" class="text-muted"></p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped" id="tablaInforme">
+                                <thead class="table-dark" id="tablaInformeHead"></thead>
+                                <tbody id="tablaInformeBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- INFORME TRIMESTRAL DE ASIGNATURA -->
+                    <div id="contenedorAsignatura" style="display:none;">
+                        <div class="text-center mb-3">
+                            <h4>UNIDAD EDUCATIVA "SUCUA"</h4>
+                            <div class="informe-header">INFORME TRIMESTRAL DE ASIGNATURA</div>
+                        </div>
+
+                        <!-- 1. DATOS INFORMATIVOS -->
+                        <div class="mb-3">
+                            <div class="informe-label">1. DATOS INFORMATIVOS:</div>
+                            <table class="informe-table">
+                                <tr>
+                                    <th>DOCENTE</th>
+                                    <th>ASIGNATURA / MODULO</th>
+                                    <th>TRIMESTRE</th>
+                                    <th>AÑO - FIGURA</th>
+                                    <th>PARALELO</th>
+                                    <th>N. ALUMNOS</th>
+                                </tr>
+                                <tr>
+                                    <td id="infoDocente" style="font-weight:normal;"></td>
+                                    <td id="infoAsignatura" style="font-weight:normal;"></td>
+                                    <td id="infoTrimestre" style="font-weight:normal;"></td>
+                                    <td id="infoAnoFigura" style="font-weight:normal;"></td>
+                                    <td id="infoParalelo" style="font-weight:normal;"></td>
+                                    <td id="infoNAlumnos" style="font-weight:normal;"></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 2. RESULTADOS DE LOS APRENDIZAJES -->
+                        <div class="mb-3" id="seccionesTrimestrales">
+                            <div class="informe-label">2. RESULTADOS DE LOS APRENDIZAJES</div>
+                            <table class="informe-table">
+                                <tr>
+                                    <th colspan="2">DOMINAN LOS APRENDIZAJES (9,00 - 10,00)</th>
+                                    <th colspan="2">ALCANZAN LOS APRENDIZAJES (7,00 - 8,99)</th>
+                                    <th colspan="2">ESTAN PROXIMOS A ALCANZAR LOS APRENDIZAJES (4,01 - 6,99)</th>
+                                    <th colspan="2">NO ALCANZAN LOS APRENDIZAJES (0,00 - 4,00)</th>
+                                    <th rowspan="2">PROMEDIO</th>
+                                </tr>
+                                <tr>
+                                    <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                    <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                    <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                    <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                </tr>
+                                <tr>
+                                    <td id="resDominanN"></td><td id="resDominanP"></td>
+                                    <td id="resAlcanzanN"></td><td id="resAlcanzanP"></td>
+                                    <td id="resProximosN"></td><td id="resProximosP"></td>
+                                    <td id="resNoAlcanzanN"></td><td id="resNoAlcanzanP"></td>
+                                    <td id="resPromedio"></td>
+                                </tr>
+                            </table>
+                            <table class="informe-table mt-2">
+                                <tr>
+                                    <th colspan="3">ESTUDIANTES SIN EXAMEN</th>
+                                </tr>
+                                <tr>
+                                    <td><strong>N.</strong></td><td><strong>%</strong></td><td><strong>NOMBRE</strong></td>
+                                </tr>
+                                <tr>
+                                    <td id="resSinExamenN"></td>
+                                    <td id="resSinExamenP"></td>
+                                    <td id="resSinExamenNombres" style="text-align:left;"></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 3. ANALISIS DE DIFICULTADES -->
+                        <div class="mb-3">
+                            <div class="informe-label d-flex justify-content-between align-items-center">
+                                <span>3. ANALISIS DE DIFICULTADES DE APRENDIZAJE (&lt;7)</span>
+                                <button class="btn btn-sm btn-outline-light" onclick="repetirAnalisisATodos()"><i class="fas fa-copy me-1"></i>Repetir a todos</button>
+                            </div>
+                            <table class="informe-table">
+                                <tr>
+                                    <th>NOMINA DE ESTUDIANTES</th>
+                                    <th>DIFICULTAD EN EL APRENDIZAJE</th>
+                                    <th>CAUSA</th>
+                                    <th>MEDIDAS ADOPTADAS POR EL DOCENTE</th>
+                                </tr>
+                                <tr>
+                                    <td id="analisisNombres" style="text-align:left; vertical-align:top;"></td>
+                                    <td id="analisisDificultad" style="text-align:left; vertical-align:top;"></td>
+                                    <td id="analisisCausa" style="text-align:left; vertical-align:top;"></td>
+                                    <td id="analisisMedidas" style="text-align:left; vertical-align:top;"></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- ESTUDIANTES SIN EXAMEN NOMINA -->
+                        <div class="mb-3">
+                            <div class="informe-label">ESTUDIANTES SIN EXAMEN.</div>
+                            <table class="informe-table" style="width:50%;">
+                                <tr><th>NOMINA</th></tr>
+                                <tr><td id="sinExamenNombres" style="text-align:left; min-height:50px; height:50px;"></td></tr>
+                            </table>
+                        </div>
+
+                        <!-- SECCIONES INFORME FINAL (solo 3er trimestre) -->
+                        <div id="seccionesFinales" style="display:none;">
+                            <!-- 4. RESULTADOS DE LOS APRENDIZAJES DEL AÑO ESCOLAR -->
+                            <div class="mb-3">
+                                <div class="informe-label">4. RESULTADOS DE LOS APRENDIZAJES DEL AÑO ESCOLAR</div>
+                                <table class="informe-table">
+                                    <tr>
+                                        <th colspan="2">DOMINAN LOS APRENDIZAJES (9,00 - 10,00)</th>
+                                        <th colspan="2">ALCANZAN LOS APRENDIZAJES (7,00 - 8,99)</th>
+                                        <th colspan="2">ESTAN PROXIMOS A ALCANZAR LOS APRENDIZAJES (4,01 - 6,99)</th>
+                                        <th colspan="2">NO ALCANZAN LOS APRENDIZAJES (0,00 - 4,00)</th>
+                                        <th rowspan="2">PROMEDIO</th>
+                                        <th colspan="2">ESTUDIANTES SIN NOTAS</th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                        <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                        <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                        <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                        <td><strong>N.</strong></td><td><strong>%</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td id="finalDominanN"></td><td id="finalDominanP"></td>
+                                        <td id="finalAlcanzanN"></td><td id="finalAlcanzanP"></td>
+                                        <td id="finalProximosN"></td><td id="finalProximosP"></td>
+                                        <td id="finalNoAlcanzanN"></td><td id="finalNoAlcanzanP"></td>
+                                        <td id="finalPromedio"></td>
+                                        <td id="finalSinNotasN"></td><td id="finalSinNotasP"></td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- 5. PROMOCION DE LOS ESTUDIANTES -->
+                            <div class="mb-3">
+                                <div class="informe-label">5. PROMOCION DE LOS ESTUDIANTES</div>
+                                <table class="informe-table">
+                                    <tr>
+                                        <th>ESTUDIANTES PROMOVIDOS</th>
+                                        <th>ESTUDIANTES PARA SUPLETORIO</th>
+                                        <th>ESTUDIANTES PIERDEN DIRECTAMENTE</th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>N.</strong> <span id="promoPromovidosN"></span> &nbsp; <strong>%</strong> <span id="promoPromovidosP"></span></td>
+                                        <td><strong>N.</strong> <span id="promoSupletorioN"></span> &nbsp; <strong>%</strong> <span id="promoSupletorioP"></span></td>
+                                        <td><strong>N.</strong> <span id="promoPierdenN"></span> &nbsp; <strong>%</strong> <span id="promoPierdenP"></span></td>
+                                    </tr>
+                                </table>
+                                <table class="informe-table mt-2" id="tablaPromocion">
+                                    <tr>
+                                        <th style="width:5%;">N.</th>
+                                        <th>NOMINA DE ESTUDIANTES</th>
+                                        <th style="width:15%;">SUPLETORIO</th>
+                                        <th style="width:15%;">PERDIDA</th>
+                                    </tr>
+                                    <tbody id="promoCuerpo"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- ESTUDIANTES SIN NOTA -->
+                            <div class="mb-3">
+                                <div class="informe-label">ESTUDIANTES SIN NOTA.</div>
+                                <table class="informe-table" style="width:60%;">
+                                    <tr>
+                                        <th>NÓMINA</th>
+                                        <th>PORT</th>
+                                        <th>PROY</th>
+                                        <th>EX</th>
+                                    </tr>
+                                    <tbody id="sinNotaCuerpo"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 4. CONCLUSIONES -->
+                        <div class="mb-3">
+                            <div class="informe-label" id="labelConclusiones">4. CONCLUSIONES</div>
+                            <textarea class="informe-textarea" id="conclusiones" style="min-height:60px;"></textarea>
+                        </div>
+
+                        <!-- 5. RECOMENDACIONES -->
+                        <div class="mb-3">
+                            <div class="informe-label" id="labelRecomendaciones">5. RECOMENDACIONES.</div>
+                            <textarea class="informe-textarea" id="recomendaciones" style="min-height:60px;"></textarea>
+                        </div>
+
+                        <!-- FIRMAS -->
+                        <table class="informe-table" style="width:100%;">
+                            <tr>
+                                <th style="width:50%;">ELABORADO/DOCENTE</th>
+                                <th style="width:50%;">RECIBIDO/TUTOR</th>
+                            </tr>
+                            <tr>
+                                <td style="height:100px; vertical-align:bottom; text-align:left;">
+                                    <div>f __________________________</div>
+                                    <br>
+                                    <div>Nombre: __________________________</div>
+                                    <div>Fecha: __________________________</div>
+                                </td>
+                                <td style="height:100px; vertical-align:bottom; text-align:left;">
+                                    <div>f __________________________</div>
+                                    <br>
+                                    <div>Nombre: __________________________</div>
+                                    <div>Fecha: __________________________</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

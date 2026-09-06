@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.log
+uploads/
+server_pid.txt
+tunnel_*.log

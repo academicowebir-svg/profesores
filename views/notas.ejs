@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notas Trimestrales - Sistema Academico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/main.js" defer></script>
+    <script src="/js/notas.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container-fluid vh-100 d-flex flex-column">
+        <header class="bg-primary text-white p-3 shadow">
+            <div class="container d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0"><i class="fas fa-chart-bar me-2"></i>Notas Trimestrales</h1>
+                <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-home"></i> Menú</a>
+            </div>
+        </header>
+        <main class="flex-grow-1 overflow-auto py-3">
+            <div class="container">
+                <!-- Configuracion de porcentajes -->
+                <div class="mb-3">
+                    <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#configPorcentajes" aria-expanded="false">
+                        <i class="fas fa-cog me-1"></i>Configuracion de Porcentajes
+                    </button>
+                    <div class="collapse mt-2" id="configPorcentajes">
+                        <div class="card card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Promedio Tareas (70%)</label>
+                                    <input type="number" class="form-control" id="pct_tareas" step="0.01" min="0" max="100" value="70">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Proyecto (15%)</label>
+                                    <input type="number" class="form-control" id="pct_proyecto" step="0.01" min="0" max="100" value="15">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Examen (15%)</label>
+                                    <input type="number" class="form-control" id="pct_examen" step="0.01" min="0" max="100" value="15">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button class="btn btn-success w-100" onclick="guardarPorcentajes()">
+                                        <i class="fas fa-save me-1"></i>Guardar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seleccion de materia, curso y trimestre -->
+                <div class="card mb-3">
+                    <div class="card-header"><i class="fas fa-filter me-1"></i>Ingresar Notas</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Materia *</label>
+                                <select class="form-select" id="materia_notas" onchange="cargarCursosPorMateria()">
+                                    <option value="">Seleccionar materia...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Curso *</label>
+                                <select class="form-select" id="grupo_notas" onchange="cargarEstudiantesNotas()">
+                                    <option value="">Seleccionar curso...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Trimestre *</label>
+                                <select class="form-select" id="trimestre_notas" onchange="cargarEstudiantesNotas()">
+                                    <option value="1">Primer Trimestre</option>
+                                    <option value="2">Segundo Trimestre</option>
+                                    <option value="3">Tercer Trimestre</option>
+                                    <option value="final">Promedio Final</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de notas -->
+                <div class="card" id="tablaNotasCard" style="display: none;">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Notas - <span id="nombreGrupoSeleccionado"></span></span>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success" id="btnAgregarTarea" onclick="agregarColumnaTarea()">
+                                <i class="fas fa-plus"></i> Agregar Tarea
+                            </button>
+                            <button class="btn btn-sm btn-primary" id="btnGuardarNotas" onclick="guardarNotas()">
+                                <i class="fas fa-save"></i> Guardar Notas
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="exportarPDFNotas()">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" id="tablaNotas">
+                                <thead class="table-primary" id="tablaNotasHead">
+                                </thead>
+                                <tbody id="tablaNotasEstudiantes">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal para ingresar notas de un estudiante (ya no se usa) -->
+                <div class="modal fade" id="notaModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="notaModalTitle">Ingresar Notas</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="nota_estudiante_id">
+                                <input type="hidden" id="nota_grupo_id">
+                                <div class="mb-3">
+                                    <label class="form-label">Estudiante</label>
+                                    <input type="text" class="form-control" id="nota_nombre_estudiante" readonly>
+                                </div>
+
+                                <ul class="nav nav-tabs mb-3" id="notaTabs">
+                                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabTareas">Tareas y Lecciones</a></li>
+                                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabProyecto">Proyecto</a></li>
+                                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabExamen">Examen</a></li>
+                                </ul>
+
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="tabTareas">
+                                        <h6 class="mb-2">Lista de Tareas y Lecciones</h6>
+                                        <table class="table table-sm table-bordered" id="tablaTareas">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Nota</th>
+                                                    <th>Accion</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tablaTareasBody">
+                                            </tbody>
+                                        </table>
+                                        <button class="btn btn-success btn-sm" onclick="agregarTarea()"><i class="fas fa-plus"></i> Agregar Tarea</button>
+                                    </div>
+
+                                    <div class="tab-pane fade" id="tabProyecto">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nota del Proyecto</label>
+                                            <input type="number" class="form-control" id="nota_proyecto_valor" step="0.01" min="0" max="10">
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-pane fade" id="tabExamen">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nota del Examen</label>
+                                            <input type="number" class="form-control" id="nota_examen_valor" step="0.01" min="0" max="10">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button class="btn btn-success" onclick="guardarNotas()">Guardar Notas</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="bg-light text-center p-2 border-top">
+            <small class="text-muted">&copy; 2026 Sistema de Gestion Academica</small>
+        </footer>
+    </div>
+</body>
+</html>

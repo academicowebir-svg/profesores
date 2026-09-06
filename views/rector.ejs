@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rector - Gestion Academica</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/main.js" defer></script>
+    <script>
+        // Force no-cache for this page
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+</head>
+<body>
+    <div class="container-fluid vh-100 d-flex flex-column">
+        <header class="bg-danger text-white p-3 shadow">
+            <div class="container d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0"><i class="fas fa-school me-2"></i>Rector - Gestion Academica</h1>
+                <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-home"></i> Menu</a>
+            </div>
+        </header>
+        <main class="flex-grow-1 overflow-auto py-3">
+            <div class="container">
+                <!-- Tabs de navegacion -->
+                <ul class="nav nav-tabs mb-3" id="rectorTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#tabMaterias">
+                            <i class="fas fa-book me-1"></i>Materias
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tabDocentes">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Docentes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tabAsignarDocente">
+                            <i class="fas fa-user-check me-1"></i>Asignar Docentes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tabAsignarAlumnos">
+                            <i class="fas fa-user-graduate me-1"></i>Asignar Alumnos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#tabTutores">
+                            <i class="fas fa-user-tie me-1"></i>Tutores
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- TAB: Gestionar Materias -->
+                    <div class="tab-pane fade show active" id="tabMaterias">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-list me-1"></i>Materias Registradas</span>
+                                <button class="btn btn-success btn-sm" onclick="abrirModalMateria()">
+                                    <i class="fas fa-plus me-1"></i>Nueva Materia
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm table-hover">
+                                        <thead class="table-dark text-center">
+                                             <tr>
+                                                 <th>#</th>
+                                                 <th>Materia</th>
+                                                 <th>Curso</th>
+                                                 <th>Paralelo</th>
+                                                 <th>Especialidad</th>
+                                                 <th>Docente</th>
+                                                 <th>Acciones</th>
+                                             </tr>
+                                        </thead>
+                                        <tbody id="cuerpoMaterias"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Gestionar Docentes -->
+                    <div class="tab-pane fade" id="tabDocentes">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-chalkboard-teacher me-1"></i>Docentes Registrados</span>
+                                <button class="btn btn-success btn-sm" onclick="abrirModalDocente()">
+                                    <i class="fas fa-plus me-1"></i>Nuevo Docente
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm table-hover">
+                                        <thead class="table-dark text-center">
+                                             <tr>
+                                                 <th>#</th>
+                                                 <th>Cedula</th>
+                                                 <th>Nombre</th>
+                                                 <th>Teléfono</th>
+                                                 <th>Acciones</th>
+                                             </tr>
+                                        </thead>
+                                        <tbody id="cuerpoDocentes"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Asignar Docentes -->
+                    <div class="tab-pane fade" id="tabAsignarDocente">
+                        <div class="card">
+                            <div class="card-header"><i class="fas fa-chalkboard-teacher me-1"></i>Asignar Docente y Tutor a Materia</div>
+                            <div class="card-body">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Materia</label>
+                                        <select class="form-select" id="selectMateriaDocente" onchange="cargarDocentesParaAsignar()">
+                                            <option value="">Seleccionar materia...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Docente</label>
+                                        <select class="form-select" id="selectDocente">
+                                            <option value="">Seleccionar docente...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Tutor</label>
+                                        <select class="form-select" id="selectTutorMateria">
+                                            <option value="">Seleccionar tutor...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button class="btn btn-primary w-100" onclick="asignarDocente()">
+                                            <i class="fas fa-check me-1"></i>Asignar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm">
+                                         <thead class="table-info text-center">
+                                             <tr>
+                                                 <th>Materia</th>
+                                                 <th>Curso</th>
+                                                 <th>Docente Asignado</th>
+                                                 <th>Tutor Asignado</th>
+                                                 <th>Acciones</th>
+                                             </tr>
+                                         </thead>
+                                        <tbody id="cuerpoAsignacionDocente"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Asignar Alumnos -->
+                    <div class="tab-pane fade" id="tabAsignarAlumnos">
+                        <div class="card">
+                            <div class="card-header"><i class="fas fa-user-graduate me-1"></i>Asignar Alumnos a Materia</div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Seleccionar Materia</label>
+                                    <select class="form-select" id="selectMateriaAlumno" onchange="cargarAsignacionAlumnos()">
+                                        <option value="">Seleccionar materia...</option>
+                                    </select>
+                                    <div id="filtroMateriaInfo" class="form-text text-primary fw-bold" style="display:none;"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <h6 class="text-primary">Disponibles</h6>
+                                        <div id="listaDisponibles" style="max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:5px;border-radius:5px;"></div>
+                                    </div>
+                                    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-2">
+                                        <button class="btn btn-success btn-sm" onclick="asignarSeleccionados()" title="Asignar seleccionados">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="desasignarSeleccionados()" title="Quitar seleccionados">
+                                            <i class="fas fa-arrow-left"></i>
+                                        </button>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <h6 class="text-success">Asignados</h6>
+                                        <div id="listaAsignados" style="max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:5px;border-radius:5px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Gestionar Tutores -->
+                    <div class="tab-pane fade" id="tabTutores">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-user-tie me-1"></i>Tutores Registrados</span>
+                                <button class="btn btn-success btn-sm" onclick="abrirModalTutor()">
+                                    <i class="fas fa-plus me-1"></i>Nuevo Tutor
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm table-hover">
+                                        <thead class="table-dark text-center">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Cedula</th>
+                                                <th>Nombre</th>
+                                                <th>Telefono</th>
+                                                <th>Email</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="cuerpoTutores"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="bg-light text-center p-2 border-top">
+            <small class="text-muted">&copy; 2026 Sistema de Gestion Academica</small>
+        </footer>
+    </div>
+
+    <!-- Modal Materia -->
+    <div class="modal fade" id="modalMateria" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalMatTitle"><i class="fas fa-book me-2"></i>Nueva Materia</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formMateria" onsubmit="guardarMateria(event)">
+                    <div class="modal-body">
+                        <input type="hidden" id="editMatId">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre de Materia *</label>
+                            <input type="text" class="form-control" id="campoNombreMat" required placeholder="Ej: Matematicas">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Curso *</label>
+                                <input type="text" class="form-control" id="campoCurso" required placeholder="Ej: Primero">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Paralelo *</label>
+                                <input type="text" class="form-control" id="campoParalelo" required placeholder="Ej: A">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Especialidad</label>
+                            <input type="text" class="form-control" id="campoEspecialidad" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Docente -->
+    <div class="modal fade" id="modalDocente" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalDocTitle"><i class="fas fa-chalkboard-teacher me-2"></i>Nuevo Docente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formDocente" onsubmit="guardarDocente(event)">
+                    <div class="modal-body">
+                        <input type="hidden" id="editDocId">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cedula *</label>
+                            <input type="text" class="form-control" id="campoCedulaDoc" required placeholder="Ej: 1400501076">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="campoNombreDoc" required placeholder="Ej: Juan Perez">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Teléfono</label>
+                            <input type="text" class="form-control" id="campoTelefonoDoc" placeholder="Ej: 0991234567">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Contrasena <span id="labelPasswordDoc">*</span></label>
+                            <input type="password" class="form-control" id="campoPasswordDoc" placeholder="Contrasena del docente">
+                            <small class="text-muted" id="hintPasswordDoc">Requerida para nuevos docentes</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tutor -->
+    <div class="modal fade" id="modalTutor" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="modalTutorTitle"><i class="fas fa-user-tie me-2"></i>Nuevo Tutor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formTutor" onsubmit="guardarTutor(event)">
+                    <div class="modal-body">
+                        <input type="hidden" id="editTutorId">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cedula *</label>
+                            <input type="text" class="form-control" id="campoCedulaTutor" required placeholder="Ej: 1400501076">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="campoNombreTutor" required placeholder="Ej: Maria Garcia">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Telefono</label>
+                            <input type="text" class="form-control" id="campoTelefonoTutor" placeholder="Ej: 0991234567">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" id="campoEmailTutor" placeholder="Ej: correo@ejemplo.com">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-info text-white">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let materiasData = [], docentesData = [], tutoresData = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Promise.all([cargarMaterias(), cargarDocentes(), cargarTutores()]);
+            poblarSelectMaterias();
+        });
+
+        async function cargarMaterias() {
+            try {
+                const res = await fetch('/api/rector/materias');
+                materiasData = await res.json();
+                renderizarMaterias();
+            } catch (err) {
+                showNotification('Error al cargar materias', 'danger');
+            }
+        }
+
+        async function cargarDocentes() {
+            try {
+                const res = await fetch('/api/rector/docentes');
+                docentesData = await res.json();
+                poblarSelectDocentes();
+                renderizarDocentes();
+            } catch (err) {
+                showNotification('Error al cargar docentes', 'danger');
+            }
+        }
+
+        function renderizarMaterias() {
+            const tbody = document.getElementById('cuerpoMaterias');
+            tbody.innerHTML = '';
+            materiasData.forEach((m, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-center">${i + 1}</td>
+                        <td>${m.nombre_materia}</td>
+                        <td class="text-center">${m.curso}</td>
+                        <td class="text-center">${m.paralelo}</td>
+                        <td class="text-center">${m.especialidad || '-'}</td>
+                        <td class="text-center">${m.docente_nombre || '<span class="text-danger">Sin asignar</span>'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-warning" onclick='editarMateria(${JSON.stringify(m)})' title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarMateria(${m.id})" title="Eliminar"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            });
+            renderizarTablaAsignacionDocente();
+        }
+
+        function renderizarDocentes() {
+            const tbody = document.getElementById('cuerpoDocentes');
+            tbody.innerHTML = '';
+            docentesData.forEach((d, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-center">${i + 1}</td>
+                        <td class="text-center">${d.cedula}</td>
+                        <td>${d.nombre}</td>
+                        <td class="text-center">${d.telefono || '-'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-warning" onclick='editarDocente(${JSON.stringify(d)})' title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarDocente(${d.id})" title="Desactivar"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function renderizarTablaAsignacionDocente() {
+            const tbody = document.getElementById('cuerpoAsignacionDocente');
+            tbody.innerHTML = '';
+            materiasData.forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${m.nombre_materia}</td>
+                        <td class="text-center">${m.curso} ${m.paralelo}${m.especialidad ? ' (' + m.especialidad + ')' : ''}</td>
+                        <td class="text-center">${m.docente_nombre || '<span class="text-danger">Sin asignar</span>'}</td>
+                        <td class="text-center">${m.tutor_nombre || '<span class="text-muted">Sin asignar</span>'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-warning" onclick="editarAsignacion(${m.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarAsignacion(${m.id})" title="Desasignar"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function poblarSelectMaterias() {
+            ['selectMateriaDocente', 'selectMateriaAlumno'].forEach(id => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '<option value="">Seleccionar materia...</option>';
+                materiasData.forEach(m => {
+                    sel.innerHTML += `<option value="${m.id}">${m.nombre_materia} - ${m.curso} ${m.paralelo}${m.especialidad ? ' (' + m.especialidad + ')' : ''}</option>`;
+                });
+            });
+            const selTutor = document.getElementById('selectTutorMateria');
+            selTutor.innerHTML = '<option value="">Seleccionar tutor...</option>';
+            tutoresData.forEach(t => {
+                selTutor.innerHTML += `<option value="${t.id}">${t.nombre} (${t.cedula})</option>`;
+            });
+        }
+
+        function poblarSelectDocentes() {
+            const sel = document.getElementById('selectDocente');
+            sel.innerHTML = '<option value="">Seleccionar docente...</option>';
+            docentesData.forEach(d => {
+                sel.innerHTML += `<option value="${d.id}">${d.nombre} (${d.cedula})</option>`;
+            });
+        }
+
+        // === MATERIAS CRUD ===
+        function abrirModalMateria() {
+            document.getElementById('editMatId').value = '';
+            document.getElementById('campoNombreMat').value = '';
+            document.getElementById('campoCurso').value = '';
+            document.getElementById('campoParalelo').value = '';
+            document.getElementById('campoEspecialidad').value = '';
+            document.getElementById('modalMatTitle').innerHTML = '<i class="fas fa-book me-2"></i>Nueva Materia';
+            new bootstrap.Modal(document.getElementById('modalMateria')).show();
+        }
+
+        function editarMateria(m) {
+            document.getElementById('editMatId').value = m.id;
+            document.getElementById('campoNombreMat').value = m.nombre_materia;
+            document.getElementById('campoCurso').value = m.curso;
+            document.getElementById('campoParalelo').value = m.paralelo;
+            document.getElementById('campoEspecialidad').value = m.especialidad || '';
+            document.getElementById('modalMatTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Materia';
+            new bootstrap.Modal(document.getElementById('modalMateria')).show();
+        }
+
+        async function guardarMateria(e) {
+            e.preventDefault();
+            const id = document.getElementById('editMatId').value;
+            const data = {
+                nombre_materia: document.getElementById('campoNombreMat').value,
+                curso: document.getElementById('campoCurso').value,
+                paralelo: document.getElementById('campoParalelo').value,
+                especialidad: document.getElementById('campoEspecialidad').value
+            };
+            try {
+                let res;
+                if (id) {
+                    res = await fetch(`/api/rector/materias/${id}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                } else {
+                    res = await fetch('/api/rector/materias', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                }
+                const result = await res.json();
+                if (res.ok) {
+                    showNotification(id ? 'Materia actualizada' : 'Materia creada', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('modalMateria')).hide();
+                    await cargarMaterias();
+                    poblarSelectMaterias();
+                } else {
+                    showNotification(result.error || 'Error', 'danger');
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        async function eliminarMateria(id) {
+            if (!confirm('Eliminar esta materia y todas sus asignaciones?')) return;
+            try {
+                const res = await fetch(`/api/rector/materias/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showNotification('Materia eliminada', 'success');
+                    await cargarMaterias();
+                    poblarSelectMaterias();
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        // === DOCENTES CRUD ===
+        function abrirModalDocente() {
+            document.getElementById('editDocId').value = '';
+            document.getElementById('campoCedulaDoc').value = '';
+            document.getElementById('campoNombreDoc').value = '';
+            document.getElementById('campoTelefonoDoc').value = '';
+            document.getElementById('campoPasswordDoc').value = '';
+            document.getElementById('campoPasswordDoc').required = true;
+            document.getElementById('labelPasswordDoc').textContent = '*';
+            document.getElementById('hintPasswordDoc').textContent = 'Requerida para nuevos docentes';
+            document.getElementById('modalDocTitle').innerHTML = '<i class="fas fa-chalkboard-teacher me-2"></i>Nuevo Docente';
+            new bootstrap.Modal(document.getElementById('modalDocente')).show();
+        }
+
+        function editarDocente(d) {
+            document.getElementById('editDocId').value = d.id;
+            document.getElementById('campoCedulaDoc').value = d.cedula;
+            document.getElementById('campoNombreDoc').value = d.nombre;
+            document.getElementById('campoTelefonoDoc').value = d.telefono || '';
+            document.getElementById('campoPasswordDoc').value = '';
+            document.getElementById('campoPasswordDoc').required = false;
+            document.getElementById('labelPasswordDoc').textContent = '';
+            document.getElementById('hintPasswordDoc').textContent = 'Dejar en blanco para no cambiar';
+            document.getElementById('modalDocTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Docente';
+            new bootstrap.Modal(document.getElementById('modalDocente')).show();
+        }
+
+        async function guardarDocente(e) {
+            e.preventDefault();
+            const id = document.getElementById('editDocId').value;
+            const data = {
+                cedula: document.getElementById('campoCedulaDoc').value,
+                nombre: document.getElementById('campoNombreDoc').value,
+                telefono: document.getElementById('campoTelefonoDoc').value,
+                password: document.getElementById('campoPasswordDoc').value
+            };
+            try {
+                let res;
+                if (id) {
+                    res = await fetch(`/api/rector/docentes/${id}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                } else {
+                    res = await fetch('/api/rector/docentes', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                }
+                const result = await res.json();
+                if (res.ok) {
+                    showNotification(id ? 'Docente actualizado' : 'Docente creado', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('modalDocente')).hide();
+                    await cargarDocentes();
+                } else {
+                    showNotification(result.error || 'Error', 'danger');
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        async function eliminarDocente(id) {
+            if (!confirm('Desactivar este docente?')) return;
+            try {
+                const res = await fetch(`/api/rector/docentes/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showNotification('Docente desactivado', 'success');
+                    await cargarDocentes();
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        // === ASIGNAR DOCENTE ===
+        function cargarDocentesParaAsignar() {
+            const matId = document.getElementById('selectMateriaDocente').value;
+            const mat = materiasData.find(m => m.id == matId);
+            document.getElementById('selectDocente').value = mat ? (mat.docente_id || '') : '';
+            document.getElementById('selectTutorMateria').value = mat ? (mat.tutor_id || '') : '';
+        }
+
+        async function asignarDocente() {
+            const matId = document.getElementById('selectMateriaDocente').value;
+            const docId = document.getElementById('selectDocente').value;
+            const tutorId = document.getElementById('selectTutorMateria').value;
+            if (!matId) { showNotification('Seleccione una materia', 'warning'); return; }
+            try {
+                const res = await fetch(`/api/rector/materias/${matId}/asignar`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ docente_id: docId || null, tutor_id: tutorId || null })
+                });
+                if (res.ok) {
+                    showNotification('Docente y tutor asignados', 'success');
+                    await cargarMaterias();
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        function editarAsignacion(matId) {
+            const mat = materiasData.find(m => m.id == matId);
+            if (!mat) return;
+            document.getElementById('selectMateriaDocente').value = mat.id;
+            document.getElementById('selectDocente').value = mat.docente_id || '';
+            document.getElementById('selectTutorMateria').value = mat.tutor_id || '';
+            showNotification('Editando asignacion de: ' + mat.nombre_materia, 'info');
+        }
+
+        async function eliminarAsignacion(matId) {
+            if (!confirm('Desasignar docente y tutor de esta materia?')) return;
+            try {
+                const res = await fetch(`/api/rector/materias/${matId}/asignar`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ docente_id: null, tutor_id: null })
+                });
+                if (res.ok) {
+                    showNotification('Asignacion eliminada', 'success');
+                    await cargarMaterias();
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        // === ASIGNAR ALUMNOS ===
+        async function cargarAsignacionAlumnos() {
+            const matId = document.getElementById('selectMateriaAlumno').value;
+            const filtroInfo = document.getElementById('filtroMateriaInfo');
+            if (!matId) {
+                filtroInfo.style.display = 'none';
+                document.getElementById('listaDisponibles').innerHTML = '';
+                document.getElementById('listaAsignados').innerHTML = '';
+                return;
+            }
+            const mat = materiasData.find(m => m.id == matId);
+            if (mat) {
+                filtroInfo.textContent = `Filtrando por: ${mat.curso} ${mat.paralelo}${mat.especialidad ? ' - ' + mat.especialidad : ''}`;
+                filtroInfo.style.display = 'block';
+            }
+            try {
+                const [dispRes, asigRes] = await Promise.all([
+                    fetch(`/api/rector/materias/${matId}/estudiantes-disponibles`),
+                    fetch(`/api/rector/materias/${matId}/estudiantes-asignados`)
+                ]);
+                const disponibles = await dispRes.json();
+                const asignados = await asigRes.json();
+                renderizarLista('listaDisponibles', disponibles, 'disp');
+                renderizarLista('listaAsignados', asignados, 'asig');
+            } catch (err) {
+                showNotification('Error al cargar alumnos', 'danger');
+            }
+        }
+
+        function renderizarLista(containerId, data, prefix) {
+            const container = document.getElementById(containerId);
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-2">No hay registros</p>';
+                return;
+            }
+            container.innerHTML = data.map(e =>
+                `<div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${e.id}" id="${prefix}_${e.id}">
+                    <label class="form-check-label" for="${prefix}_${e.id}">${e.nombres_apellidos} (${e.cedula})</label>
+                </div>`
+            ).join('');
+        }
+
+        async function asignarSeleccionados() {
+            const matId = document.getElementById('selectMateriaAlumno').value;
+            if (!matId) { showNotification('Seleccione una materia', 'warning'); return; }
+            const checks = document.querySelectorAll('#listaDisponibles .form-check-input:checked');
+            const ids = Array.from(checks).map(c => parseInt(c.value));
+            if (ids.length === 0) { showNotification('Seleccione al menos un alumno', 'warning'); return; }
+            try {
+                const res = await fetch(`/api/rector/materias/${matId}/asignar-alumnos`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estudiante_ids: ids })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showNotification(result.message, 'success');
+                    cargarAsignacionAlumnos();
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        async function desasignarSeleccionados() {
+            const matId = document.getElementById('selectMateriaAlumno').value;
+            if (!matId) return;
+            const checks = document.querySelectorAll('#listaAsignados .form-check-input:checked');
+            const eids = Array.from(checks).map(c => parseInt(c.value));
+            if (eids.length === 0) return;
+            for (const eid of eids) {
+                await fetch(`/api/rector/materias/${matId}/desasignar-alumno/${eid}`, { method: 'DELETE' });
+            }
+            showNotification(`${eids.length} alumnos desasignados`, 'success');
+            cargarAsignacionAlumnos();
+        }
+
+        // === TUTORES CRUD ===
+        async function cargarTutores() {
+            try {
+                const res = await fetch('/api/rector/tutores');
+                tutoresData = await res.json();
+                renderizarTutores();
+                poblarSelectTutores();
+            } catch (err) {
+                showNotification('Error al cargar tutores', 'danger');
+            }
+        }
+
+        function renderizarTutores() {
+            const tbody = document.getElementById('cuerpoTutores');
+            tbody.innerHTML = '';
+            tutoresData.forEach((t, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-center">${i + 1}</td>
+                        <td class="text-center">${t.cedula}</td>
+                        <td>${t.nombre}</td>
+                        <td class="text-center">${t.telefono || '-'}</td>
+                        <td class="text-center">${t.email || '-'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-warning" onclick='editarTutor(${JSON.stringify(t)})' title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarTutor(${t.id})" title="Eliminar"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function poblarSelectTutores() {
+            const sel = document.getElementById('selectTutorMateria');
+            sel.innerHTML = '<option value="">Seleccionar tutor...</option>';
+            tutoresData.forEach(t => {
+                sel.innerHTML += `<option value="${t.id}">${t.nombre} (${t.cedula})</option>`;
+            });
+        }
+
+        function abrirModalTutor() {
+            document.getElementById('editTutorId').value = '';
+            document.getElementById('campoCedulaTutor').value = '';
+            document.getElementById('campoNombreTutor').value = '';
+            document.getElementById('campoTelefonoTutor').value = '';
+            document.getElementById('campoEmailTutor').value = '';
+            document.getElementById('modalTutorTitle').innerHTML = '<i class="fas fa-user-tie me-2"></i>Nuevo Tutor';
+            new bootstrap.Modal(document.getElementById('modalTutor')).show();
+        }
+
+        function editarTutor(t) {
+            document.getElementById('editTutorId').value = t.id;
+            document.getElementById('campoCedulaTutor').value = t.cedula;
+            document.getElementById('campoNombreTutor').value = t.nombre;
+            document.getElementById('campoTelefonoTutor').value = t.telefono || '';
+            document.getElementById('campoEmailTutor').value = t.email || '';
+            document.getElementById('modalTutorTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Tutor';
+            new bootstrap.Modal(document.getElementById('modalTutor')).show();
+        }
+
+        async function guardarTutor(e) {
+            e.preventDefault();
+            const id = document.getElementById('editTutorId').value;
+            const data = {
+                cedula: document.getElementById('campoCedulaTutor').value,
+                nombre: document.getElementById('campoNombreTutor').value,
+                telefono: document.getElementById('campoTelefonoTutor').value,
+                email: document.getElementById('campoEmailTutor').value
+            };
+            try {
+                let res;
+                if (id) {
+                    res = await fetch(`/api/rector/tutores/${id}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                } else {
+                    res = await fetch('/api/rector/tutores', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                    });
+                }
+                const result = await res.json();
+                if (res.ok) {
+                    showNotification(id ? 'Tutor actualizado' : 'Tutor creado', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('modalTutor')).hide();
+                    await cargarTutores();
+                } else {
+                    showNotification(result.error || 'Error', 'danger');
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+        async function eliminarTutor(id) {
+            if (!confirm('Eliminar este tutor y sus asignaciones?')) return;
+            try {
+                const res = await fetch(`/api/rector/tutores/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showNotification('Tutor eliminado', 'success');
+                    await cargarTutores();
+                }
+            } catch (err) {
+                showNotification('Error de conexion', 'danger');
+            }
+        }
+
+    </script>
+</body>
+</html>
