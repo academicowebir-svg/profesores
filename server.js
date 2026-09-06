@@ -115,6 +115,7 @@ const rectorRoutes = require('./routes/rector');
 const inspectorRoutes = require('./routes/inspector');
 const recuperacionRoutes = require('./routes/recuperacion');
 const justificacionesRoutes = require('./routes/justificaciones');
+const diagnosticoRoutes = require('./routes/diagnostico');
 
 // Admin/Usuarios: solo rector
 app.use('/api/admin', requireAuth, requireRole('rector'), adminRoutes);
@@ -142,6 +143,7 @@ app.use('/api/informes', requireAuth, injectDB, informesRoutes);
 app.use('/api/recursos', requireAuth, injectDB, recursosRoutes);
 app.use('/api/recuperacion', requireAuth, injectDB, recuperacionRoutes);
 app.use('/api/justificaciones', requireAuth, injectDB, justificacionesRoutes);
+app.use('/api/diagnostico', requireAuth, injectDB, diagnosticoRoutes);
 
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
