@@ -73,13 +73,22 @@ app.post('/login', async (req, res) => {
         }
         const user = rows[0];
 
+        let anioDefault = '2026-2027';
+        try {
+            const [anioRows] = await db.query(
+                'SELECT anio FROM anio_lectivos WHERE school_id = ? AND activo = 1 ORDER BY anio DESC LIMIT 1',
+                [user.school_id]
+            );
+            if (anioRows.length > 0) anioDefault = anioRows[0].anio;
+        } catch (e) {}
+
         req.session.user = {
             id: user.id,
             cedula: user.cedula,
             nombre: user.nombre,
             rol: user.rol,
             school_id: user.school_id,
-            anio_lectivo: '2026-2027'
+            anio_lectivo: anioDefault
         };
 
         req.session.save((err) => {
@@ -103,11 +112,11 @@ app.get('/api/years', requireAuth, async (req, res) => {
     try {
         const db = getPool();
         const [rows] = await db.query(
-            'SELECT DISTINCT anio_lectivo FROM estudiantes WHERE school_id = ? ORDER BY anio_lectivo DESC',
+            'SELECT anio FROM anio_lectivos WHERE school_id = ? AND activo = 1 ORDER BY anio DESC',
             [req.session.user.school_id]
         );
-        const years = rows.map(r => r.anio_lectivo).filter(Boolean);
-        if (!years.includes('2026-2027')) years.unshift('2026-2027');
+        const years = rows.map(r => r.anio);
+        if (years.length === 0) years.push('2026-2027');
         res.json(years);
     } catch (err) {
         res.json(['2026-2027']);
@@ -146,6 +155,7 @@ const inspectorRoutes = require('./routes/inspector');
 const recuperacionRoutes = require('./routes/recuperacion');
 const justificacionesRoutes = require('./routes/justificaciones');
 const diagnosticoRoutes = require('./routes/diagnostico');
+const anioLectivosRoutes = require('./routes/anio_lectivos');
 
 // Admin/Usuarios: solo rector
 app.use('/api/admin', requireAuth, requireRole('rector'), adminRoutes);
@@ -155,6 +165,7 @@ app.use('/api/secretaria', requireAuth, requireRole('secretaria'), injectDB, sec
 
 // Rector: solo rector
 app.use('/api/rector', requireAuth, requireRole('rector'), injectDB, rectorRoutes);
+app.use('/api/anio-lectivos', requireAuth, requireRole('rector'), injectDB, anioLectivosRoutes);
 
 // Inspector: solo inspector
 app.use('/api/inspector', requireAuth, requireRole('inspector'), inspectorRoutes);
