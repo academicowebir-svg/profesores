@@ -59,7 +59,7 @@ router.get('/curso/:curso/paralelo/:paralelo/materia/:materia_id/diagnosticos', 
         `, [curso, paralelo, materia_id]);
         res.json(rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.json([]);
     }
 });
 

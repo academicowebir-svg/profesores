@@ -226,7 +226,8 @@
                 document.getElementById('noEstudiantes').style.display = 'none';
 
                 const diagRes = await fetch(`/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/diagnosticos`);
-                diagnosticosExistentes = await diagRes.json();
+                const diagData = await diagRes.json();
+                diagnosticosExistentes = Array.isArray(diagData) ? diagData : [];
             } catch (err) {
                 console.error('Error cargando datos:', err);
                 alert('Error al cargar estudiantes: ' + err.message);
