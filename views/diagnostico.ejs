@@ -206,21 +206,32 @@
 
             document.getElementById('nombreGrupoDiag').textContent = `${curso} - ${paralelo}${currentMateriaInfo.especialidad ? ' (' + currentMateriaInfo.especialidad + ')' : ''}`;
 
-            const res = await fetch(`/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/estudiantes`);
-            estudiantesDiag = await res.json();
+            try {
+                console.log('Buscando estudiantes:', { curso, paralelo, materia_id });
+                const url = `/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/estudiantes`;
+                console.log('URL:', url);
+                const res = await fetch(url);
+                const text = await res.text();
+                console.log('Response status:', res.status, 'Body:', text);
+                estudiantesDiag = JSON.parse(text);
 
-            if (estudiantesDiag.length === 0) {
-                document.getElementById('tablaDiagCard').style.display = 'block';
-                document.getElementById('tablaDiagBody').innerHTML = '';
-                document.getElementById('tablaDiagHead').innerHTML = '';
-                document.getElementById('noEstudiantes').style.display = 'block';
+                if (estudiantesDiag.length === 0) {
+                    document.getElementById('tablaDiagCard').style.display = 'block';
+                    document.getElementById('tablaDiagBody').innerHTML = '';
+                    document.getElementById('tablaDiagHead').innerHTML = '';
+                    document.getElementById('noEstudiantes').style.display = 'block';
+                    return;
+                }
+
+                document.getElementById('noEstudiantes').style.display = 'none';
+
+                const diagRes = await fetch(`/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/diagnosticos`);
+                diagnosticosExistentes = await diagRes.json();
+            } catch (err) {
+                console.error('Error cargando datos:', err);
+                alert('Error al cargar estudiantes: ' + err.message);
                 return;
             }
-
-            document.getElementById('noEstudiantes').style.display = 'none';
-
-            const diagRes = await fetch(`/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/diagnosticos`);
-            diagnosticosExistentes = await diagRes.json();
 
             if (diagnosticosExistentes.length > 0 && diagnosticosExistentes[0].destrezas) {
                 const primerDiag = typeof diagnosticosExistentes[0].destrezas === 'string'
