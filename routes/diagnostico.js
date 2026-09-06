@@ -45,54 +45,19 @@ router.get('/curso/:curso/paralelo/:paralelo/materia/:materia_id/estudiantes', a
     }
 });
 
-router.get('/grupo/:grupo_id/notas', async (req, res) => {
+router.get('/curso/:curso/paralelo/:paralelo/materia/:materia_id/diagnosticos', async (req, res) => {
     const db = req.db;
-    const { grupo_id } = req.params;
+    const { curso, paralelo, materia_id } = req.params;
     try {
         const [rows] = await db.query(`
-            SELECT n.id, n.nota, n.fecha_registro, n.comentario, n.indice,
-                   e.id as estudiante_id, e.cedula, e.nombres_apellidos
-            FROM notas n
-            INNER JOIN grupos g ON n.grupo_id = g.id
-            INNER JOIN estudiantes e ON g.estudiante_id = e.id
-            WHERE n.grupo_id = ? AND n.tipo = 'diagnostico'
-            ORDER BY n.indice, e.nombres_apellidos
-        `, [grupo_id]);
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.get('/grupo/:grupo_id/todas', async (req, res) => {
-    const db = req.db;
-    const { grupo_id } = req.params;
-    try {
-        const [grupoInfo] = await db.query(
-            'SELECT nombre_grupo, materia_id FROM grupos WHERE id = ? LIMIT 1',
-            [grupo_id]
-        );
-        if (grupoInfo.length === 0) {
-            return res.status(404).json({ error: 'Grupo no encontrado' });
-        }
-
-        const [estudiantes] = await db.query(`
-            SELECT e.id, e.cedula, e.nombres_apellidos, g.id as grupo_id
-            FROM estudiantes e
-            INNER JOIN grupos g ON e.id = g.estudiante_id
-            WHERE g.nombre_grupo = ? AND g.materia_id = ? AND e.activo = 1
+            SELECT pd.id, pd.estudiante_id, pd.destrezas, pd.total, pd.descripcion, pd.fecha,
+                   e.cedula, e.nombres_apellidos
+            FROM pruebas_diagnostico pd
+            INNER JOIN estudiantes e ON pd.estudiante_id = e.id
+            WHERE pd.curso = ? AND pd.paralelo = ? AND pd.materia_id = ?
             ORDER BY e.nombres_apellidos
-        `, [grupoInfo[0].nombre_grupo, grupoInfo[0].materia_id]);
-
-        const [notas] = await db.query(`
-            SELECT n.id, n.nota, n.fecha_registro, n.comentario, n.indice, n.grupo_id
-            FROM notas n
-            INNER JOIN grupos g ON n.grupo_id = g.id
-            WHERE g.nombre_grupo = ? AND g.materia_id = ? AND n.tipo = 'diagnostico'
-            ORDER BY n.indice
-        `, [grupoInfo[0].nombre_grupo, grupoInfo[0].materia_id]);
-
-        res.json({ estudiantes, notas });
+        `, [curso, paralelo, materia_id]);
+        res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -100,23 +65,44 @@ router.get('/grupo/:grupo_id/todas', async (req, res) => {
 
 router.post('/guardar', async (req, res) => {
     const db = req.db;
-    const { notas } = req.body;
+    const { diagnosticos } = req.body;
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
-        for (const item of notas) {
-            if (item.nota !== null && item.nota !== undefined && item.nota !== '') {
-                await conn.query(`
-                    INSERT INTO notas (grupo_id, trimestre, tipo, nota, fecha_registro, comentario, indice)
-                    VALUES (?, ?, 'diagnostico', ?, CURDATE(), ?, ?)
-                    ON DUPLICATE KEY UPDATE nota = VALUES(nota), comentario = VALUES(comentario)
-                `, [item.grupo_id, 0, item.nota, item.comentario || null, item.indice || 0]);
+        for (const diag of diagnosticos) {
+            const total = diag.total || 0;
+            let descripcion = '';
+            if (total >= 9.00) {
+                descripcion = 'Domina los aprendizajes';
+            } else if (total >= 7.00) {
+                descripcion = 'Alcanza los aprendizajes';
+            } else if (total >= 4.01) {
+                descripcion = 'Proximos a alcanzar los aprendizajes';
+            } else {
+                descripcion = 'No alcanza los aprendizajes';
+            }
+
+            const [existing] = await conn.query(
+                'SELECT id FROM pruebas_diagnostico WHERE estudiante_id = ? AND materia_id = ? AND curso = ? AND paralelo = ?',
+                [diag.estudiante_id, diag.materia_id, diag.curso, diag.paralelo]
+            );
+
+            if (existing.length > 0) {
+                await conn.query(
+                    'UPDATE pruebas_diagnostico SET destrezas = ?, total = ?, descripcion = ?, fecha = CURDATE() WHERE id = ?',
+                    [JSON.stringify(diag.destrezas), total, descripcion, existing[0].id]
+                );
+            } else {
+                await conn.query(
+                    'INSERT INTO pruebas_diagnostico (estudiante_id, materia_id, curso, paralelo, destrezas, total, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [diag.estudiante_id, diag.materia_id, diag.curso, diag.paralelo, JSON.stringify(diag.destrezas), total, descripcion]
+                );
             }
         }
 
         await conn.commit();
-        res.json({ message: 'Notas de diagnóstico guardadas exitosamente' });
+        res.json({ message: 'Diagnosticos guardados exitosamente' });
     } catch (err) {
         await conn.rollback();
         res.status(500).json({ error: err.message });
@@ -125,33 +111,13 @@ router.post('/guardar', async (req, res) => {
     }
 });
 
-router.post('/agregar-indice', async (req, res) => {
+router.delete('/:id', async (req, res) => {
     const db = req.db;
-    const { grupo_ids, indice } = req.body;
-    const conn = await db.getConnection();
     try {
-        await conn.beginTransaction();
-
-        for (const grupo_id of grupo_ids) {
-            const [existing] = await conn.query(
-                'SELECT id FROM notas WHERE grupo_id = ? AND tipo = ? AND indice = ?',
-                [grupo_id, 'diagnostico', indice]
-            );
-            if (existing.length === 0) {
-                await conn.query(
-                    'INSERT INTO notas (grupo_id, trimestre, tipo, nota, fecha_registro, indice) VALUES (?, 0, ?, NULL, CURDATE(), ?)',
-                    [grupo_id, 'diagnostico', indice]
-                );
-            }
-        }
-
-        await conn.commit();
-        res.json({ message: 'Columna agregada' });
+        await db.query('DELETE FROM pruebas_diagnostico WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Diagnostico eliminado' });
     } catch (err) {
-        await conn.rollback();
         res.status(500).json({ error: err.message });
-    } finally {
-        conn.release();
     }
 });
 
