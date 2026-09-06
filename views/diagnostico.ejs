@@ -17,7 +17,7 @@
         .desc-logro { color: #198754; font-weight: bold; }
         .desc-domina { color: #0d6efd; font-weight: bold; }
         .table td { vertical-align: middle; }
-        .th-destreza { min-width: 100px; }
+        .th-destreza { writing-mode: vertical-lr; transform: rotate(180deg); white-space: nowrap; min-width: 50px; }
     </style>
 </head>
 <body>
@@ -35,22 +35,17 @@
                     <div class="card-header"><i class="fas fa-filter me-1"></i>Seleccionar Materia y Curso</div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Materia *</label>
                                 <select class="form-select" id="materia_diag" onchange="cargarCursosDiag()">
                                     <option value="">Seleccionar materia...</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label">Curso *</label>
-                                <select class="form-select" id="grupo_diag">
+                                <select class="form-select" id="grupo_diag" onchange="cargarEstudiantesDiag()">
                                     <option value="">Seleccionar curso...</option>
                                 </select>
-                            </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <button class="btn btn-primary w-100" onclick="cargarEstudiantesDiag()">
-                                    <i class="fas fa-search me-1"></i>Cargar Estudiantes
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -58,7 +53,7 @@
 
                 <div class="card" id="tablaDiagCard" style="display: none;">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-clipboard-check me-1"></i>Diagnostico - <span id="nombreGrupoDiag"></span></span>
+                        <span>Diagnostico - <span id="nombreGrupoDiag"></span></span>
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-success" onclick="agregarDestreza()">
                                 <i class="fas fa-plus"></i> Agregar Destreza
@@ -123,10 +118,11 @@
     </div>
 
     <script>
+        let materiasDataDiag = [];
         let estudiantesDiag = [];
         let diagnosticosExistentes = [];
         let numDestrezas = 3;
-        let materiaInfo = {};
+        let currentMateriaInfo = null;
 
         function getDescripcion(total) {
             if (total >= 9.00) return 'Domina los aprendizajes';
@@ -142,34 +138,75 @@
             return 'desc-no';
         }
 
-        async function cargarMateriasDiag() {
-            const res = await fetch('/api/diagnostico/materias');
-            const materias = await res.json();
-            const select = document.getElementById('materia_diag');
-            select.innerHTML = '<option value="">Seleccionar materia...</option>';
-            materias.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = JSON.stringify({ curso: m.curso, paralelo: m.paralelo, materia_id: m.id, nombre: m.nombre_materia });
-                opt.textContent = `${m.nombre_materia} - ${m.curso} ${m.paralelo}`;
-                select.appendChild(opt);
-            });
+        function colorNota(v) {
+            if (v <= 0) return 'fw-bold';
+            if (v <= 4) return 'fw-bold text-danger';
+            if (v <= 6.99) return 'fw-bold text-warning';
+            return 'fw-bold text-success';
+        }
+
+        async function cargarDatosDiag() {
+            try {
+                const res = await fetch('/api/diagnostico/materias');
+                materiasDataDiag = await res.json();
+
+                const selectMateria = document.getElementById('materia_diag');
+                selectMateria.innerHTML = '<option value="">Seleccionar materia...</option>';
+
+                const materiasUnicas = {};
+                materiasDataDiag.forEach(m => {
+                    if (!materiasUnicas[m.nombre_materia]) {
+                        materiasUnicas[m.nombre_materia] = m.nombre_materia;
+                    }
+                });
+
+                Object.keys(materiasUnicas).sort().forEach(nombre => {
+                    const option = document.createElement('option');
+                    option.value = nombre;
+                    option.textContent = nombre;
+                    selectMateria.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Error:', err);
+            }
         }
 
         function cargarCursosDiag() {
-            document.getElementById('grupo_diag').innerHTML = '<option value="">Seleccionar curso...</option>';
+            const nombreMateria = document.getElementById('materia_diag').value;
+            const selectCurso = document.getElementById('grupo_diag');
+
+            if (!nombreMateria) {
+                selectCurso.innerHTML = '<option value="">Seleccionar curso...</option>';
+                document.getElementById('tablaDiagCard').style.display = 'none';
+                return;
+            }
+
+            const cursosFiltrados = materiasDataDiag.filter(m => m.nombre_materia === nombreMateria);
+
+            selectCurso.innerHTML = '<option value="">Seleccionar curso...</option>';
+            cursosFiltrados.forEach(m => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify({ curso: m.curso, paralelo: m.paralelo, materia_id: m.id, nombre: m.nombre_materia, especialidad: m.especialidad });
+                option.textContent = `${m.curso} - ${m.paralelo}${m.especialidad ? ' (' + m.especialidad + ')' : ''}`;
+                selectCurso.appendChild(option);
+            });
+
             document.getElementById('tablaDiagCard').style.display = 'none';
         }
 
         async function cargarEstudiantesDiag() {
-            const val = document.getElementById('materia_diag').value;
-            if (!val) return alert('Seleccione una materia');
+            const val = document.getElementById('grupo_diag').value;
+            if (!val) {
+                document.getElementById('tablaDiagCard').style.display = 'none';
+                return;
+            }
 
-            materiaInfo = JSON.parse(val);
-            const { curso, paralelo, materia_id } = materiaInfo;
+            currentMateriaInfo = JSON.parse(val);
+            const { curso, paralelo, materia_id } = currentMateriaInfo;
 
-            document.getElementById('nombreGrupoDiag').textContent = `${materiaInfo.nombre} - ${curso} ${paralelo}`;
+            document.getElementById('nombreGrupoDiag').textContent = `${curso} - ${paralelo}${currentMateriaInfo.especialidad ? ' (' + currentMateriaInfo.especialidad + ')' : ''}`;
 
-            const res = await fetch(`/api/diagnostico/curso/${curso}/paralelo/${paralelo}/materia/${materia_id}/estudiantes`);
+            const res = await fetch(`/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/estudiantes`);
             estudiantesDiag = await res.json();
 
             if (estudiantesDiag.length === 0) {
@@ -182,7 +219,7 @@
 
             document.getElementById('noEstudiantes').style.display = 'none';
 
-            const diagRes = await fetch(`/api/diagnostico/curso/${curso}/paralelo/${paralelo}/materia/${materia_id}/diagnosticos`);
+            const diagRes = await fetch(`/api/diagnostico/curso/${encodeURIComponent(curso)}/paralelo/${encodeURIComponent(paralelo)}/materia/${materia_id}/diagnosticos`);
             diagnosticosExistentes = await diagRes.json();
 
             if (diagnosticosExistentes.length > 0 && diagnosticosExistentes[0].destrezas) {
@@ -200,12 +237,17 @@
             const thead = document.getElementById('tablaDiagHead');
             const tbody = document.getElementById('tablaDiagBody');
 
-            let headerHtml = '<tr><th>#</th><th>Estudiante</th>';
+            let headerRow1 = '<th>Estudiante</th>';
+            let headerRow2 = '<th></th>';
+
+            headerRow1 += `<th class="text-center" colspan="${numDestrezas + 2}">Destrezas (0-10)</th>`;
             for (let i = 1; i <= numDestrezas; i++) {
-                headerHtml += `<th class="th-destreza">Destreza ${i}<br><small class="text-muted">(0-10)</small></th>`;
+                headerRow2 += `<th class="text-center th-destreza"><small class="fw-bold">D${i}</small></th>`;
             }
-            headerHtml += '<th>Total</th><th>Descripcion</th></tr>';
-            thead.innerHTML = headerHtml;
+            headerRow2 += '<th class="text-center" style="min-width:50px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Total</div></th>';
+            headerRow2 += '<th class="text-center" style="min-width:80px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Descripcion</div></th>';
+
+            thead.innerHTML = `<tr>${headerRow1}</tr><tr>${headerRow2}</tr>`;
 
             let bodyHtml = '';
             let countD = 0, countA = 0, countP = 0, countN = 0;
@@ -221,7 +263,8 @@
 
                 let total = 0;
                 if (destrezasExistentes.length > 0) {
-                    total = destrezasExistentes.reduce((sum, d) => sum + (parseFloat(d) || 0), 0) / destrezasExistentes.length;
+                    const vals = destrezasExistentes.filter(d => d !== null && d !== undefined);
+                    total = vals.length > 0 ? vals.reduce((sum, d) => sum + parseFloat(d), 0) / vals.length : 0;
                 }
                 total = parseFloat(total.toFixed(2));
                 const desc = getDescripcion(total);
@@ -232,20 +275,20 @@
                 else if (total >= 4.01) countP++;
                 else if (total > 0) countN++;
 
-                bodyHtml += `<tr>
-                    <td>${idx + 1}</td>
+                bodyHtml += `<tr data-estudiante="${est.id}">
                     <td>${est.nombres_apellidos}</td>`;
 
                 for (let i = 0; i < numDestrezas; i++) {
                     const val = destrezasExistentes[i] !== undefined && destrezasExistentes[i] !== null ? destrezasExistentes[i] : '';
-                    bodyHtml += `<td><input type="number" class="form-control nota-input" min="0" max="10" step="0.01"
-                        value="${val}"
-                        data-estudiante="${est.id}" data-idx="${i}"
-                        oninput="calcularTotal(this)"></td>`;
+                    bodyHtml += `<td class="text-center">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" min="0" max="10" step="0.01"
+                            value="${val}" data-estudiante="${est.id}" data-idx="${i}"
+                            onchange="calcularTotalFila(this)">
+                    </td>`;
                 }
 
-                bodyHtml += `<td class="total-cell total-cell-${est.id}">${total > 0 ? total.toFixed(2) : '-'}</td>
-                    <td class="${descClass} desc-cell-${est.id}">${total > 0 ? desc : '-'}</td></tr>`;
+                bodyHtml += `<td class="text-center total-cell total-${est.id}" data-est="${est.id}">${total > 0 ? total.toFixed(2) : '-'}</td>
+                    <td class="text-center fw-bold ${descClass} desc-${est.id}" data-est="${est.id}">${total > 0 ? desc : '-'}</td></tr>`;
             });
 
             tbody.innerHTML = bodyHtml;
@@ -257,46 +300,47 @@
             document.getElementById('countNoAlcanza').textContent = countN;
         }
 
-        function calcularTotal(input) {
-            const row = input.closest('tr');
-            const inputs = row.querySelectorAll('.nota-input');
-            let suma = 0;
-            let count = 0;
-            inputs.forEach(inp => {
-                const val = parseFloat(inp.value);
-                if (!isNaN(val)) {
-                    suma += val;
-                    count++;
-                }
-            });
-
-            const estId = input.dataset.estudiante;
-            const totalCell = row.querySelector(`.total-cell-${estId}`);
-            const descCell = row.querySelector(`.desc-cell-${estId}`);
-
-            if (count > 0) {
-                const promedio = suma / count;
-                const total = parseFloat(promedio.toFixed(2));
-                totalCell.textContent = total.toFixed(2);
-                descCell.textContent = getDescripcion(total);
-                descCell.className = `total-cell ${getDescClass(total)} desc-cell-${estId}`;
-            } else {
-                totalCell.textContent = '-';
-                descCell.textContent = '-';
-                descCell.className = `total-cell desc-cell-${estId}`;
+        function calcularTotalFila(input) {
+            const val = parseFloat(input.value);
+            if (input.value !== '' && (isNaN(val) || val < 0 || val > 10)) {
+                input.value = '';
+                return;
             }
 
-            actualizarResumen();
+            const tr = input.closest('tr');
+            const estId = input.dataset.estudiante;
+            const inputs = tr.querySelectorAll('.nota-input');
+            let suma = 0, count = 0;
+            inputs.forEach(inp => {
+                const v = parseFloat(inp.value);
+                if (!isNaN(v)) { suma += v; count++; }
+            });
+
+            const totalEl = tr.querySelector(`.total-${estId}`);
+            const descEl = tr.querySelector(`.desc-${estId}`);
+
+            if (count > 0) {
+                const total = parseFloat((suma / count).toFixed(2));
+                totalEl.textContent = total.toFixed(2);
+                totalEl.className = `text-center total-cell ${colorNota(total)} total-${estId}`;
+                descEl.textContent = getDescripcion(total);
+                descEl.className = `text-center fw-bold ${getDescClass(total)} desc-${estId}`;
+            } else {
+                totalEl.textContent = '-';
+                totalEl.className = `text-center total-cell total-${estId}`;
+                descEl.textContent = '-';
+                descEl.className = `text-center fw-bold desc-${estId}`;
+            }
+
+            actualizarResumenDiag();
         }
 
-        function actualizarResumen() {
+        function actualizarResumenDiag() {
             let countD = 0, countA = 0, countP = 0, countN = 0;
             estudiantesDiag.forEach(est => {
-                const row = document.querySelector(`tr input[data-estudiante="${est.id}"]`)?.closest('tr');
-                if (!row) return;
-                const totalText = row.querySelector(`.total-cell-${est.id}`)?.textContent;
-                if (!totalText || totalText === '-') return;
-                const total = parseFloat(totalText);
+                const totalEl = document.querySelector(`.total-${est.id}`);
+                if (!totalEl || totalEl.textContent === '-') return;
+                const total = parseFloat(totalEl.textContent);
                 if (total >= 9.00) countD++;
                 else if (total >= 7.00) countA++;
                 else if (total >= 4.01) countP++;
@@ -320,10 +364,11 @@
         }
 
         async function guardarDiagnosticos() {
-            const diagnosticos = [];
+            if (!currentMateriaInfo) return alert('Seleccione materia y curso');
 
+            const diagnosticos = [];
             estudiantesDiag.forEach(est => {
-                const inputs = document.querySelectorAll(`input[data-estudiante="${est.id}"]`);
+                const inputs = document.querySelectorAll(`tr[data-estudiante="${est.id}"] .nota-input`);
                 const destrezas = [];
                 inputs.forEach(inp => {
                     const val = inp.value.trim();
@@ -338,9 +383,9 @@
 
                 diagnosticos.push({
                     estudiante_id: est.id,
-                    materia_id: materiaInfo.materia_id,
-                    curso: materiaInfo.curso,
-                    paralelo: materiaInfo.paralelo,
+                    materia_id: currentMateriaInfo.materia_id,
+                    curso: currentMateriaInfo.curso,
+                    paralelo: currentMateriaInfo.paralelo,
                     destrezas: destrezas,
                     total: total
                 });
@@ -368,7 +413,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', cargarMateriasDiag);
+        document.addEventListener('DOMContentLoaded', cargarDatosDiag);
     </script>
 </body>
 </html>
