@@ -76,7 +76,7 @@ app.post('/login', async (req, res) => {
         let anioDefault = '2026-2027';
         try {
             const [anioRows] = await db.query(
-                'SELECT anio FROM anio_lectivos WHERE school_id = ? AND activo = 1 ORDER BY anio DESC LIMIT 1',
+                `SELECT anio FROM anio_lectivos WHERE school_id = ? AND activo_${user.rol} = 1 ORDER BY anio DESC LIMIT 1`,
                 [user.school_id]
             );
             if (anioRows.length > 0) anioDefault = anioRows[0].anio;
