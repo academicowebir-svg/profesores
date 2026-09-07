@@ -111,8 +111,10 @@ app.get('/logout', (req, res) => {
 app.get('/api/years', requireAuth, async (req, res) => {
     try {
         const db = getPool();
+        const rol = req.session.user.rol;
+        const columna = `activo_${rol}`;
         const [rows] = await db.query(
-            'SELECT anio FROM anio_lectivos WHERE school_id = ? AND activo = 1 ORDER BY anio DESC',
+            `SELECT anio FROM anio_lectivos WHERE school_id = ? AND ${columna} = 1 ORDER BY anio DESC`,
             [req.session.user.school_id]
         );
         const years = rows.map(r => r.anio);

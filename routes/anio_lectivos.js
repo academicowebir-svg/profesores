@@ -38,7 +38,7 @@ router.post('/', async (req, res) => {
         }
 
         const [result] = await db.query(
-            'INSERT INTO anio_lectivos (anio, school_id, activo) VALUES (?, ?, 1)',
+            'INSERT INTO anio_lectivos (anio, school_id, activo, activo_docente, activo_secretaria, activo_inspector) VALUES (?, ?, 1, 1, 1, 1)',
             [anio, schoolId]
         );
         res.json({ id: result.insertId, message: 'Año lectivo creado exitosamente' });
@@ -47,13 +47,18 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Activar/desactivar año lectivo
-router.put('/:id/toggle', async (req, res) => {
+// Activar/desactivar año lectivo por rol
+router.put('/:id/toggle-rol', async (req, res) => {
     try {
         const db = req.db;
         const schoolId = req.session.user.school_id;
+        const { rol } = req.body;
+        const columna = `activo_${rol}`;
+        if (!['docente', 'secretaria', 'inspector'].includes(rol)) {
+            return res.status(400).json({ error: 'Rol no valido' });
+        }
         await db.query(
-            'UPDATE anio_lectivos SET activo = NOT activo WHERE id = ? AND school_id = ?',
+            `UPDATE anio_lectivos SET ${columna} = NOT ${columna} WHERE id = ? AND school_id = ?`,
             [req.params.id, schoolId]
         );
         res.json({ message: 'Estado actualizado' });

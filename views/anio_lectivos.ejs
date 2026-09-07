@@ -34,7 +34,9 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Año Lectivo</th>
-                                        <th class="text-center">Estado</th>
+                                        <th class="text-center">Docente</th>
+                                        <th class="text-center">Secretaria</th>
+                                        <th class="text-center">Inspector</th>
                                         <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
@@ -88,15 +90,27 @@
                             <td class="text-center">${i + 1}</td>
                             <td class="fw-bold">${item.anio}</td>
                             <td class="text-center">
-                                ${item.activo 
-                                    ? '<span class="badge bg-success">Activo</span>' 
-                                    : '<span class="badge bg-secondary">Inactivo</span>'}
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" 
+                                        ${item.activo_docente ? 'checked' : ''} 
+                                        onchange="toggleRol(${item.id}, 'docente')">
+                                </div>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm ${item.activo ? 'btn-warning' : 'btn-success'}" 
-                                        onclick="toggleAnio(${item.id})" title="${item.activo ? 'Desactivar' : 'Activar'}">
-                                    <i class="fas fa-${item.activo ? 'pause' : 'play'}"></i>
-                                </button>
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" 
+                                        ${item.activo_secretaria ? 'checked' : ''} 
+                                        onchange="toggleRol(${item.id}, 'secretaria')">
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" 
+                                        ${item.activo_inspector ? 'checked' : ''} 
+                                        onchange="toggleRol(${item.id}, 'inspector')">
+                                </div>
+                            </td>
+                            <td class="text-center">
                                 <button class="btn btn-sm btn-danger" onclick="eliminarAnio(${item.id}, '${item.anio}')" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -135,12 +149,17 @@
             }
         }
 
-        async function toggleAnio(id) {
+        async function toggleRol(id, rol) {
             try {
-                await fetch(`/api/anio-lectivos/${id}/toggle`, { method: 'PUT' });
-                cargarAnios();
+                await fetch(`/api/anio-lectivos/${id}/toggle-rol`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rol })
+                });
+                showNotification(`Estado de ${rol} actualizado`, 'success');
             } catch (err) {
                 showNotification('Error', 'danger');
+                cargarAnios();
             }
         }
 
