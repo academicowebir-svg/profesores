@@ -29,17 +29,28 @@
                     </button>
                     <div class="collapse mt-2" id="configPorcentajes">
                         <div class="card card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Materia (dejar vacío para porcentajes globales)</label>
+                                    <select class="form-select" id="materia_porcentajes" onchange="cargarPorcentajesMateria()">
+                                        <option value="">Porcentajes globales</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <span id="badgePorcentajes" class="badge bg-info" style="display:none;">Porcentajes personalizados</span>
+                                </div>
+                            </div>
                             <div class="row g-3">
                                 <div class="col-md-3">
-                                    <label class="form-label">Promedio Tareas (70%)</label>
+                                    <label class="form-label">Promedio Tareas (%)</label>
                                     <input type="number" class="form-control" id="pct_tareas" step="0.01" min="0" max="100" value="70">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Proyecto (15%)</label>
+                                    <label class="form-label">Proyecto (%)</label>
                                     <input type="number" class="form-control" id="pct_proyecto" step="0.01" min="0" max="100" value="15">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Examen (15%)</label>
+                                    <label class="form-label">Examen (%)</label>
                                     <input type="number" class="form-control" id="pct_examen" step="0.01" min="0" max="100" value="15">
                                 </div>
                                 <div class="col-md-3 d-flex align-items-end">
@@ -48,6 +59,7 @@
                                     </button>
                                 </div>
                             </div>
+                            <small class="text-muted mt-2 d-block">Los porcentajes deben sumar 100%. Si no se asigna materia, se aplicarán globalmente.</small>
                         </div>
                     </div>
                 </div>

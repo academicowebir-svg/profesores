@@ -49,6 +49,16 @@ async function cargarDatos() {
             option.textContent = nombre;
             selectMateria.appendChild(option);
         });
+        
+        // Cargar materias en el selector de porcentajes
+        const selectMateriaPct = document.getElementById('materia_porcentajes');
+        selectMateriaPct.innerHTML = '<option value="">Porcentajes globales</option>';
+        Object.keys(materiasUnicas).sort().forEach(nombre => {
+            const option = document.createElement('option');
+            option.value = nombre;
+            option.textContent = nombre;
+            selectMateriaPct.appendChild(option);
+        });
     } catch (err) {
         console.error('Error:', err);
         showNotification('Error al cargar datos', 'danger');
@@ -77,10 +87,58 @@ function cargarCursosPorMateria() {
     });
 }
 
+async function cargarPorcentajesMateria() {
+    const nombreMateria = document.getElementById('materia_porcentajes').value;
+    const badge = document.getElementById('badgePorcentajes');
+    
+    if (!nombreMateria) {
+        // Cargar porcentajes globales
+        try {
+            const res = await fetch('/api/notas/porcentajes');
+            const data = await res.json();
+            data.forEach(row => {
+                porcentajes[row.concepto] = parseFloat(row.porcentaje);
+            });
+            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas || 70;
+            document.getElementById('pct_proyecto').value = porcentajes.proyecto || 15;
+            document.getElementById('pct_examen').value = porcentajes.examen || 15;
+            badge.style.display = 'none';
+        } catch (err) {}
+        return;
+    }
+    
+    // Buscar materia_id por nombre
+    const materia = materiasData.find(m => m.nombre_materia === nombreMateria);
+    if (!materia) return;
+    
+    try {
+        const res = await fetch(`/api/notas/porcentajes/${materia.id}`);
+        const data = await res.json();
+        if (data.global) {
+            // Usar porcentajes globales
+            data.porcentajes.forEach(row => {
+                porcentajes[row.concepto] = parseFloat(row.porcentaje);
+            });
+            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas || 70;
+            document.getElementById('pct_proyecto').value = porcentajes.proyecto || 15;
+            document.getElementById('pct_examen').value = porcentajes.examen || 15;
+            badge.style.display = 'none';
+            badge.textContent = 'Usando porcentajes globales';
+        } else {
+            document.getElementById('pct_tareas').value = data.promedio_tareas || 70;
+            document.getElementById('pct_proyecto').value = data.proyecto || 15;
+            document.getElementById('pct_examen').value = data.examen || 15;
+            badge.style.display = 'inline';
+            badge.textContent = 'Porcentajes personalizados para esta materia';
+        }
+    } catch (err) {}
+}
+
 async function guardarPorcentajes() {
     const pctTareas = document.getElementById('pct_tareas').value;
     const pctProyecto = document.getElementById('pct_proyecto').value;
     const pctExamen = document.getElementById('pct_examen').value;
+    const nombreMateria = document.getElementById('materia_porcentajes').value;
     
     const total = parseFloat(pctTareas) + parseFloat(pctProyecto) + parseFloat(pctExamen);
     
@@ -89,8 +147,19 @@ async function guardarPorcentajes() {
     }
     
     try {
-        const response = await fetch('/api/notas/porcentajes', {
-            method: 'PUT',
+        let url, method;
+        if (nombreMateria) {
+            const materia = materiasData.find(m => m.nombre_materia === nombreMateria);
+            if (!materia) return;
+            url = `/api/notas/porcentajes/${materia.id}`;
+            method = 'POST';
+        } else {
+            url = '/api/notas/porcentajes';
+            method = 'PUT';
+        }
+        
+        const response = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 promedio_tareas: parseFloat(pctTareas),
@@ -101,7 +170,7 @@ async function guardarPorcentajes() {
         
         const data = await response.json();
         if (response.ok) {
-            showNotification('Porcentajes guardados exitosamente', 'success');
+            showNotification(nombreMateria ? 'Porcentajes guardados para esta materia' : 'Porcentajes globales guardados', 'success');
             porcentajes = {
                 promedio_tareas: parseFloat(pctTareas),
                 proyecto: parseFloat(pctProyecto),

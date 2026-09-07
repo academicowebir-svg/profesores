@@ -19,7 +19,48 @@ router.get('/porcentajes', async (req, res) => {
     }
 });
 
-// Actualizar porcentajes
+// Obtener porcentajes de una materia específica
+router.get('/porcentajes/:materia_id', async (req, res) => {
+    const db = req.db;
+    const user = req.session.user;
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM configuracion_porcentajes_materia WHERE materia_id = ? AND school_id = ?',
+            [req.params.materia_id, user.school_id]
+        );
+        if (rows.length > 0) {
+            res.json(rows[0]);
+        } else {
+            const [global] = await db.query('SELECT * FROM configuracion_porcentajes');
+            res.json({ global: true, porcentajes: global });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar porcentajes para una materia específica
+router.post('/porcentajes/:materia_id', async (req, res) => {
+    const db = req.db;
+    const user = req.session.user;
+    const { promedio_tareas, proyecto, examen } = req.body;
+    try {
+        await db.query(
+            `INSERT INTO configuracion_porcentajes_materia (materia_id, promedio_tareas, proyecto, examen, school_id)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+                promedio_tareas = VALUES(promedio_tareas),
+                proyecto = VALUES(proyecto),
+                examen = VALUES(examen)`,
+            [req.params.materia_id, promedio_tareas, proyecto, examen, user.school_id]
+        );
+        res.json({ message: 'Porcentajes guardados para esta materia' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Actualizar porcentajes globales
 router.put('/porcentajes', async (req, res) => {
     const db = req.db;
     const { promedio_tareas, proyecto, examen } = req.body;
@@ -207,11 +248,36 @@ router.post('/grupo/:grupo_id/trimestre/:trimestre/multiple', async (req, res) =
 
 // Función para calcular el promedio trimestral
 async function calcularPromedio(conn, grupo_id, trimestre) {
-    const [pctRows] = await conn.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
-    const porcentajes = {};
-    pctRows.forEach(row => {
-        porcentajes[row.concepto] = parseFloat(row.porcentaje);
-    });
+    // Obtener materia_id del grupo
+    const [grupoInfo] = await conn.query(
+        'SELECT materia_id FROM grupos WHERE id = ? LIMIT 1',
+        [grupo_id]
+    );
+    
+    let porcentajes = {};
+    
+    // Intentar obtener porcentajes específicos de la materia
+    if (grupoInfo.length > 0) {
+        const [materiaPct] = await conn.query(
+            'SELECT promedio_tareas, proyecto, examen FROM configuracion_porcentajes_materia WHERE materia_id = ?',
+            [grupoInfo[0].materia_id]
+        );
+        if (materiaPct.length > 0) {
+            porcentajes = {
+                promedio_tareas: parseFloat(materiaPct[0].promedio_tareas),
+                proyecto: parseFloat(materiaPct[0].proyecto),
+                examen: parseFloat(materiaPct[0].examen)
+            };
+        }
+    }
+    
+    // Si no hay porcentajes específicos, usar los globales
+    if (!porcentajes.promedio_tareas) {
+        const [pctRows] = await conn.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
+        pctRows.forEach(row => {
+            porcentajes[row.concepto] = parseFloat(row.porcentaje);
+        });
+    }
 
     const [tareaRows] = await conn.query(
         'SELECT AVG(nota) as promedio FROM notas WHERE grupo_id = ? AND trimestre = ? AND tipo = ?',
