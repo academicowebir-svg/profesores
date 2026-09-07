@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Renderizar vista
-router.get('/', (req, res) => {
+router.get('/view', (req, res) => {
     res.render('anio_lectivos');
 });
 
