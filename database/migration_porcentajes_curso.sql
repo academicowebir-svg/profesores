@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS configuracion_porcentajes_curso (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    curso VARCHAR(50) NOT NULL,
+    promedio_tareas DECIMAL(5,2) DEFAULT 70,
+    proyecto DECIMAL(5,2) DEFAULT 15,
+    examen DECIMAL(5,2) DEFAULT 15,
+    school_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY (curso, school_id),
+    FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
+);

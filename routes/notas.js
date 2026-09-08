@@ -19,7 +19,48 @@ router.get('/porcentajes', async (req, res) => {
     }
 });
 
-// Obtener porcentajes de una materia específica
+// Obtener porcentajes de un curso específico
+router.get('/porcentajes/curso/:curso', async (req, res) => {
+    const db = req.db;
+    const user = req.session.user;
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM configuracion_porcentajes_curso WHERE curso = ? AND school_id = ?',
+            [req.params.curso, user.school_id]
+        );
+        if (rows.length > 0) {
+            res.json(rows[0]);
+        } else {
+            const [global] = await db.query('SELECT * FROM configuracion_porcentajes');
+            res.json({ global: true, porcentajes: global });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar porcentajes para un curso específico
+router.post('/porcentajes/curso/:curso', async (req, res) => {
+    const db = req.db;
+    const user = req.session.user;
+    const { promedio_tareas, proyecto, examen } = req.body;
+    try {
+        await db.query(
+            `INSERT INTO configuracion_porcentajes_curso (curso, promedio_tareas, proyecto, examen, school_id)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+                promedio_tareas = VALUES(promedio_tareas),
+                proyecto = VALUES(proyecto),
+                examen = VALUES(examen)`,
+            [req.params.curso, promedio_tareas, proyecto, examen, user.school_id]
+        );
+        res.json({ message: `Porcentajes guardados para el curso ${req.params.curso}` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener porcentajes de una materia específica (legacy)
 router.get('/porcentajes/:materia_id', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
@@ -39,7 +80,7 @@ router.get('/porcentajes/:materia_id', async (req, res) => {
     }
 });
 
-// Guardar porcentajes para una materia específica
+// Guardar porcentajes para una materia específica (legacy)
 router.post('/porcentajes/:materia_id', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
@@ -248,30 +289,30 @@ router.post('/grupo/:grupo_id/trimestre/:trimestre/multiple', async (req, res) =
 
 // Función para calcular el promedio trimestral
 async function calcularPromedio(conn, grupo_id, trimestre) {
-    // Obtener materia_id del grupo
+    // Obtener curso del grupo
     const [grupoInfo] = await conn.query(
-        'SELECT materia_id FROM grupos WHERE id = ? LIMIT 1',
+        'SELECT curso FROM grupos WHERE id = ? LIMIT 1',
         [grupo_id]
     );
     
     let porcentajes = {};
     
-    // Intentar obtener porcentajes específicos de la materia
-    if (grupoInfo.length > 0) {
-        const [materiaPct] = await conn.query(
-            'SELECT promedio_tareas, proyecto, examen FROM configuracion_porcentajes_materia WHERE materia_id = ?',
-            [grupoInfo[0].materia_id]
+    // Intentar obtener porcentajes específicos del curso
+    if (grupoInfo.length > 0 && grupoInfo[0].curso) {
+        const [cursoPct] = await conn.query(
+            'SELECT promedio_tareas, proyecto, examen FROM configuracion_porcentajes_curso WHERE curso = ?',
+            [grupoInfo[0].curso]
         );
-        if (materiaPct.length > 0) {
+        if (cursoPct.length > 0) {
             porcentajes = {
-                promedio_tareas: parseFloat(materiaPct[0].promedio_tareas),
-                proyecto: parseFloat(materiaPct[0].proyecto),
-                examen: parseFloat(materiaPct[0].examen)
+                promedio_tareas: parseFloat(cursoPct[0].promedio_tareas),
+                proyecto: parseFloat(cursoPct[0].proyecto),
+                examen: parseFloat(cursoPct[0].examen)
             };
         }
     }
     
-    // Si no hay porcentajes específicos, usar los globales
+    // Si no hay porcentajes específicos del curso, usar los globales
     if (!porcentajes.promedio_tareas) {
         const [pctRows] = await conn.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
         pctRows.forEach(row => {
