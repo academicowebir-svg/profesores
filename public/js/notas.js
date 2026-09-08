@@ -166,6 +166,11 @@ async function cargarPorcentajesConfig() {
             document.getElementById('pct_tareas').value = data.promedio_tareas || 70;
             document.getElementById('pct_proyecto').value = data.proyecto || 15;
             document.getElementById('pct_examen').value = data.examen || 15;
+            porcentajes = {
+                promedio_tareas: parseFloat(data.promedio_tareas) || 70,
+                proyecto: parseFloat(data.proyecto) || 15,
+                examen: parseFloat(data.examen) || 15
+            };
             badge.style.display = 'inline';
             badge.textContent = 'Personalizados';
         }
