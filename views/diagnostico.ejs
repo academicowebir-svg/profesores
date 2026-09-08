@@ -352,7 +352,7 @@
                 else if (total > 0) countN++;
 
                 bodyHtml += `<tr data-estudiante="${est.id}">
-                    <td>${est.nombres_apellidos}</td>`;
+                    <td>${nombreEstudiante(est.nombres_apellidos, est.discapacidad)}</td>`;
 
                 for (let i = 0; i < numDestrezas; i++) {
                     const val = destrezasExistentes[i] !== undefined && destrezasExistentes[i] !== null ? destrezasExistentes[i] : '';
