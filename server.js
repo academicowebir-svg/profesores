@@ -158,12 +158,14 @@ const recuperacionRoutes = require('./routes/recuperacion');
 const justificacionesRoutes = require('./routes/justificaciones');
 const diagnosticoRoutes = require('./routes/diagnostico');
 const anioLectivosRoutes = require('./routes/anio_lectivos');
+const cursosRoutes = require('./routes/cursos');
 
 // Admin/Usuarios: solo rector
 app.use('/api/admin', requireAuth, requireRole('rector'), adminRoutes);
 
 // Secretaria: solo secretaria
 app.use('/api/secretaria', requireAuth, requireRole('secretaria'), injectDB, secretariaRoutes);
+app.use('/api/cursos', requireAuth, requireRole('secretaria'), injectDB, cursosRoutes);
 
 // Rector: solo rector
 app.use('/api/rector', requireAuth, requireRole('rector'), injectDB, rectorRoutes);
