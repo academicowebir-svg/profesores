@@ -261,7 +261,15 @@ router.post('/importar-excel', upload.single('archivo'), async (req, res) => {
             const numeroMatricula = `MAT-${anioCorto}-${String(numSeq).padStart(4, '0')}`;
 
             let edad = null;
-            const fechaNac = row.fecha_nacimiento ? String(row.fecha_nacimiento).trim() : null;
+            let fechaNac = row.fecha_nacimiento ? String(row.fecha_nacimiento).trim() : null;
+
+            // Convertir fecha de Excel (número serial) a formato YYYY-MM-DD
+            if (fechaNac && /^\d{4,5}$/.test(fechaNac)) {
+                const excelDate = parseInt(fechaNac);
+                const date = new Date((excelDate - 25569) * 86400 * 1000);
+                fechaNac = date.toISOString().split('T')[0];
+            }
+
             if (fechaNac) {
                 const hoy = new Date();
                 const nac = new Date(fechaNac);
