@@ -5,19 +5,28 @@ let masterPool = null;
 
 function getPool() {
     if (!sharedPool) {
-        const config = {
-            host: process.env.DB_HOST || 'localhost',
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_DATABASE || 'gestion_academica',
-            waitForConnections: true,
-            connectionLimit: 20,
-            queueLimit: 0
-        };
+        const useSSL = process.env.DB_SSL === 'true';
         
         if (process.env.DB_URL) {
-            sharedPool = mysql.createPool(process.env.DB_URL + '?waitForConnections=true&connectionLimit=20&queueLimit=0').promise();
+            const urlConfig = {
+                uri: process.env.DB_URL,
+                waitForConnections: true,
+                connectionLimit: 20,
+                queueLimit: 0,
+                ssl: useSSL ? { rejectUnauthorized: true } : undefined
+            };
+            sharedPool = mysql.createPool(urlConfig).promise();
         } else {
+            const config = {
+                host: process.env.DB_HOST || 'localhost',
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_DATABASE || 'gestion_academica',
+                waitForConnections: true,
+                connectionLimit: 20,
+                queueLimit: 0,
+                ssl: useSSL ? { rejectUnauthorized: true } : undefined
+            };
             sharedPool = mysql.createPool(config).promise();
         }
     }
@@ -26,19 +35,28 @@ function getPool() {
 
 function getMasterPool() {
     if (!masterPool) {
-        const config = {
-            host: process.env.DB_HOST || 'localhost',
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_DATABASE || 'gestion_academica',
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0
-        };
+        const useSSL = process.env.DB_SSL === 'true';
         
         if (process.env.DB_URL) {
-            masterPool = mysql.createPool(process.env.DB_URL + '?waitForConnections=true&connectionLimit=10&queueLimit=0').promise();
+            const urlConfig = {
+                uri: process.env.DB_URL,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                ssl: useSSL ? { rejectUnauthorized: true } : undefined
+            };
+            masterPool = mysql.createPool(urlConfig).promise();
         } else {
+            const config = {
+                host: process.env.DB_HOST || 'localhost',
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_DATABASE || 'gestion_academica',
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                ssl: useSSL ? { rejectUnauthorized: true } : undefined
+            };
             masterPool = mysql.createPool(config).promise();
         }
     }
