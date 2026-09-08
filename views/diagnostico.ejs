@@ -128,6 +128,7 @@
         let diagnosticosExistentes = [];
         let numDestrezas = 3;
         let currentMateriaInfo = null;
+        let nombresDestrezas = {};
 
         function getModoCalculo() {
             return document.getElementById('modo_calculo')?.value || 'promedio';
@@ -146,6 +147,33 @@
 
         function cambiarModoCalculo() {
             renderTablaDiag();
+        }
+
+        function guardarNombresDestrezas() {
+            if (!currentMateriaInfo) return;
+            const key = `destrezas_${currentMateriaInfo.materia_id}_${currentMateriaInfo.curso}_${currentMateriaInfo.paralelo}`;
+            localStorage.setItem(key, JSON.stringify(nombresDestrezas));
+        }
+
+        function cargarNombresDestrezas() {
+            if (!currentMateriaInfo) return;
+            const key = `destrezas_${currentMateriaInfo.materia_id}_${currentMateriaInfo.curso}_${currentMateriaInfo.paralelo}`;
+            const guardados = localStorage.getItem(key);
+            if (guardados) {
+                nombresDestrezas = JSON.parse(guardados);
+            } else {
+                nombresDestrezas = {};
+            }
+        }
+
+        function renombrarDestreza(num) {
+            const nombreDefault = nombresDestrezas[num] || `D${num}`;
+            const nombre = prompt(`Nombre de la destreza D${num}:`, nombreDefault);
+            if (nombre !== null && nombre.trim() !== '') {
+                nombresDestrezas[num] = nombre.trim();
+                guardarNombresDestrezas();
+                renderTablaDiag();
+            }
         }
 
         function getDescripcion(total) {
@@ -276,9 +304,21 @@
             let headerRow1 = '<th>Estudiante</th>';
             let headerRow2 = '<th></th>';
 
+            cargarNombresDestrezas();
+            for (let i = 1; i <= numDestrezas; i++) {
+                if (!nombresDestrezas[i]) nombresDestrezas[i] = `D${i}`;
+            }
+            guardarNombresDestrezas();
+
             headerRow1 += `<th class="text-center" colspan="${numDestrezas + 2}">Destrezas (0-10)</th>`;
             for (let i = 1; i <= numDestrezas; i++) {
-                headerRow2 += `<th class="text-center th-destreza"><small class="fw-bold">D${i}</small></th>`;
+                const nombre = nombresDestrezas[i] || `D${i}`;
+                headerRow2 += `<th class="text-center th-destreza">
+                    <div><small class="fw-bold">${nombre}</small></div>
+                    <div class="mt-1" style="writing-mode:horizontal-tb;transform:none">
+                        <button class="btn btn-outline-light btn-sm py-0 px-1" onclick="renombrarDestreza(${i})" title="Renombrar" style="font-size:10px"><i class="fas fa-pen"></i></button>
+                    </div>
+                </th>`;
             }
             const modoLabel = getModoCalculo() === 'suma' ? 'Suma' : 'Promedio';
             headerRow2 += `<th class="text-center" style="min-width:50px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Total (${modoLabel})</div></th>`;
