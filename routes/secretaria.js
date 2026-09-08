@@ -57,13 +57,31 @@ router.post('/estudiantes', async (req, res) => {
             anio_lectivo, curso, paralelo, especialidad
         } = req.body;
 
-        const [existente] = await db.query(
-            'SELECT id FROM estudiantes WHERE cedula = ? AND school_id = ?',
-            [cedula, schoolId]
-        );
-        if (existente.length > 0) {
-            return res.status(400).json({ error: 'La cedula ya esta registrada en esta escuela' });
+        const anio = anio_lectivo || '2026-2027';
+
+        // Verificar cédula duplicada solo en el mismo año
+        if (cedula) {
+            const [existente] = await db.query(
+                'SELECT id FROM estudiantes WHERE cedula = ? AND school_id = ? AND anio_lectivo = ?',
+                [cedula, schoolId, anio]
+            );
+            if (existente.length > 0) {
+                return res.status(400).json({ error: 'La cedula ya esta registrada en este año lectivo' });
+            }
         }
+
+        // Generar número de matrícula
+        const anioCorto = anio.split('-')[0].slice(-2);
+        const [lastMat] = await db.query(
+            "SELECT numero_matricula FROM estudiantes WHERE numero_matricula LIKE ? AND school_id = ? ORDER BY id DESC LIMIT 1",
+            [`MAT-${anioCorto}-%`, schoolId]
+        );
+        let numSeq = 1;
+        if (lastMat.length > 0) {
+            const lastNum = parseInt(lastMat[0].numero_matricula.split('-')[2]);
+            numSeq = lastNum + 1;
+        }
+        const numeroMatricula = `MAT-${anioCorto}-${String(numSeq).padStart(4, '0')}`;
 
         let edad = null;
         if (fecha_nacimiento) {
@@ -76,23 +94,23 @@ router.post('/estudiantes', async (req, res) => {
 
         const [result] = await db.query(
             `INSERT INTO estudiantes (
-                cedula, nombres_apellidos, sexo, fecha_nacimiento, edad, email,
+                numero_matricula, cedula, nombres_apellidos, sexo, fecha_nacimiento, edad, email,
                 tipo_sangre, discapacidad, discapacidad_tipo,
                 pais, provincia, ciudad, parroquia, direccion,
                 representante, cedula_representante, telefono_representante,
                 email_representante, lugar_trabajo_representante,
                 anio_lectivo, curso, paralelo, especialidad, school_id
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
-                cedula, nombres_apellidos, sexo, fecha_nacimiento || null, edad, email || null,
+                numeroMatricula, cedula || null, nombres_apellidos, sexo, fecha_nacimiento || null, edad, email || null,
                 tipo_sangre || null, discapacidad || 'NO', discapacidad_tipo || null,
                 pais || null, provincia || null, ciudad || null, parroquia || null, direccion || null,
                 representante || null, cedula_representante || null, telefono_representante || null,
                 email_representante || null, lugar_trabajo_representante || null,
-                anio_lectivo || null, curso || null, paralelo || null, especialidad || null, schoolId
+                anio, curso || null, paralelo || null, especialidad || null, schoolId
             ]
         );
-        res.json({ message: 'Estudiante matriculado exitosamente', id: result.insertId });
+        res.json({ message: 'Estudiante matriculado exitosamente', id: result.insertId, numero_matricula: numeroMatricula });
     } catch (err) {
         console.error('Error al crear estudiante:', err);
         res.status(500).json({ error: err.message });
@@ -218,14 +236,29 @@ router.post('/importar-excel', upload.single('archivo'), async (req, res) => {
                 continue;
             }
 
+            const anioRow = row.anio_lectivo ? String(row.anio_lectivo).trim() : anioDefault;
+
             const [existente] = await db.query(
-                'SELECT id FROM estudiantes WHERE cedula = ? AND school_id = ?',
-                [cedula, schoolId]
+                'SELECT id FROM estudiantes WHERE cedula = ? AND school_id = ? AND anio_lectivo = ?',
+                [cedula, schoolId, anioRow]
             );
             if (existente.length > 0) {
                 omitidos++;
                 continue;
             }
+
+            // Generar número de matrícula
+            const anioCorto = anioRow.split('-')[0].slice(-2);
+            const [lastMat] = await db.query(
+                "SELECT numero_matricula FROM estudiantes WHERE numero_matricula LIKE ? AND school_id = ? ORDER BY id DESC LIMIT 1",
+                [`MAT-${anioCorto}-%`, schoolId]
+            );
+            let numSeq = 1;
+            if (lastMat.length > 0) {
+                const lastNum = parseInt(lastMat[0].numero_matricula.split('-')[2]);
+                numSeq = lastNum + 1;
+            }
+            const numeroMatricula = `MAT-${anioCorto}-${String(numSeq).padStart(4, '0')}`;
 
             let edad = null;
             const fechaNac = row.fecha_nacimiento ? String(row.fecha_nacimiento).trim() : null;
@@ -239,15 +272,15 @@ router.post('/importar-excel', upload.single('archivo'), async (req, res) => {
 
             await db.query(
                 `INSERT INTO estudiantes (
-                    cedula, nombres_apellidos, sexo, fecha_nacimiento, edad, email,
+                    numero_matricula, cedula, nombres_apellidos, sexo, fecha_nacimiento, edad, email,
                     tipo_sangre, discapacidad, discapacidad_tipo,
                     pais, provincia, ciudad, parroquia, direccion,
                     representante, cedula_representante, telefono_representante,
                     email_representante, lugar_trabajo_representante,
                     anio_lectivo, curso, paralelo, especialidad, school_id
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
                 [
-                    cedula, nombres_apellidos,
+                    numeroMatricula, cedula, nombres_apellidos,
                     sexo === 'F' ? 'F' : 'M',
                     fechaNac || null, edad,
                     row.email ? String(row.email).trim() : null,
@@ -264,7 +297,7 @@ router.post('/importar-excel', upload.single('archivo'), async (req, res) => {
                     row.telefono_representante ? String(row.telefono_representante).trim() : null,
                     row.email_representante ? String(row.email_representante).trim() : null,
                     row.lugar_trabajo_representante ? String(row.lugar_trabajo_representante).trim() : null,
-                    row.anio_lectivo ? String(row.anio_lectivo).trim() : anioDefault,
+                    anioRow,
                     curso || null, paralelo || null,
                     row.especialidad ? String(row.especialidad).trim() : null,
                     schoolId
