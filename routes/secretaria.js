@@ -210,7 +210,7 @@ router.post('/importar-excel', upload.single('archivo'), async (req, res) => {
             return res.status(400).json({ error: 'No se envio ningun archivo' });
         }
 
-        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
@@ -261,13 +261,28 @@ router.post('/importar-excel', upload.single('archivo'), async (req, res) => {
             const numeroMatricula = `MAT-${anioCorto}-${String(numSeq).padStart(4, '0')}`;
 
             let edad = null;
-            let fechaNac = row.fecha_nacimiento ? String(row.fecha_nacimiento).trim() : null;
-
-            // Convertir fecha de Excel (número serial) a formato YYYY-MM-DD
-            if (fechaNac && /^\d{4,5}$/.test(fechaNac)) {
-                const excelDate = parseInt(fechaNac);
-                const date = new Date((excelDate - 25569) * 86400 * 1000);
-                fechaNac = date.toISOString().split('T')[0];
+            let fechaNac = null;
+            if (row.fecha_nacimiento) {
+                const raw = row.fecha_nacimiento;
+                if (raw instanceof Date) {
+                    // xlsx devolvió un objeto Date
+                    const y = raw.getFullYear();
+                    const m = String(raw.getMonth() + 1).padStart(2, '0');
+                    const d = String(raw.getDate()).padStart(2, '0');
+                    fechaNac = `${y}-${m}-${d}`;
+                } else {
+                    let str = String(raw).trim();
+                    // Convertir fecha de Excel (número serial) a formato YYYY-MM-DD
+                    if (/^\d{4,6}$/.test(str)) {
+                        const excelDate = parseInt(str);
+                        const date = new Date(Math.round((excelDate - 25569) * 86400000));
+                        const year = date.getUTCFullYear();
+                        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(date.getUTCDate()).padStart(2, '0');
+                        str = `${year}-${month}-${day}`;
+                    }
+                    fechaNac = str;
+                }
             }
 
             if (fechaNac) {
