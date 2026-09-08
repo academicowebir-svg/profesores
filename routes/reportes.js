@@ -235,13 +235,37 @@ router.get('/notas/materia/:materia_id/trimestre/:trimestre', async (req, res) =
     try {
         const esFinal = trimestre === 'final';
 
-        // Obtener porcentajes
-        const [pctRows] = await db.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
-        const porcentajes = {};
-        pctRows.forEach(r => { porcentajes[r.concepto] = parseFloat(r.porcentaje); });
-        const pctTareasVal = porcentajes.promedio_tareas || 70;
-        const pctProyectoVal = porcentajes.proyecto || 15;
-        const pctExamenVal = porcentajes.examen || 15;
+        // Obtener info de la materia (curso, paralelo, especialidad)
+        const [materiaInfo] = await db.query('SELECT curso, paralelo, especialidad FROM materias WHERE id = ?', [materia_id]);
+        const matInfo = materiaInfo.length > 0 ? materiaInfo[0] : null;
+
+        // Intentar obtener porcentajes específicos por materia+curso+paralelo+especialidad
+        let pctTareasVal, pctProyectoVal, pctExamenVal;
+        if (matInfo) {
+            let configQuery = 'SELECT promedio_tareas, proyecto, examen FROM configuracion_porcentajes_materia_curso WHERE materia_id = ? AND curso = ? AND paralelo = ? AND school_id = (SELECT school_id FROM materias WHERE id = ? LIMIT 1)';
+            let configParams = [materia_id, matInfo.curso, matInfo.paralelo, materia_id];
+            if (matInfo.especialidad) {
+                configQuery += ' AND especialidad = ?';
+                configParams.push(matInfo.especialidad);
+            } else {
+                configQuery += ' AND especialidad IS NULL';
+            }
+            const [configRows] = await db.query(configQuery, configParams);
+            if (configRows.length > 0) {
+                pctTareasVal = parseFloat(configRows[0].promedio_tareas) ?? 70;
+                pctProyectoVal = parseFloat(configRows[0].proyecto) ?? 15;
+                pctExamenVal = parseFloat(configRows[0].examen) ?? 15;
+            }
+        }
+        // Si no hay config específica, usar globales
+        if (pctTareasVal === undefined) {
+            const [pctRows] = await db.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
+            const porcentajes = {};
+            pctRows.forEach(r => { porcentajes[r.concepto] = parseFloat(r.porcentaje); });
+            pctTareasVal = porcentajes.promedio_tareas ?? 70;
+            pctProyectoVal = porcentajes.proyecto ?? 15;
+            pctExamenVal = porcentajes.examen ?? 15;
+        }
 
         const trimestresAConsultar = esFinal ? [1, 2, 3] : [parseInt(trimestre)];
 
@@ -652,9 +676,9 @@ router.get('/whatsapp/detalle/:grupo_id', async (req, res) => {
             const [pcts] = await db.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
             const pctMap = {};
             pcts.forEach(p => { pctMap[p.concepto] = parseFloat(p.porcentaje); });
-            const pctT = pctMap['promedio_tareas'] || 70;
-            const pctP = pctMap['proyecto'] || 15;
-            const pctE = pctMap['examen'] || 15;
+            const pctT = pctMap['promedio_tareas'] ?? 70;
+            const pctP = pctMap['proyecto'] ?? 15;
+            const pctE = pctMap['examen'] ?? 15;
 
             const [maxT] = await db.query('SELECT MAX(trimestre) as max_t FROM notas WHERE grupo_id = ?', [grupo_id]);
             const trimestre = maxT.length > 0 && maxT[0].max_t ? maxT[0].max_t : 1;
