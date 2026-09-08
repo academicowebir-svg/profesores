@@ -330,7 +330,7 @@ async function calcularPromedio(conn, grupo_id, trimestre) {
     }
     
     // Si no hay porcentajes específicos, usar los globales
-    if (!porcentajes.promedio_tareas) {
+    if (porcentajes.promedio_tareas === undefined) {
         const [pctRows] = await conn.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
         pctRows.forEach(row => {
             porcentajes[row.concepto] = parseFloat(row.porcentaje);

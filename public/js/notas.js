@@ -27,9 +27,9 @@ async function cargarDatos() {
             porcentajes[row.concepto] = parseFloat(row.porcentaje);
         });
         
-        document.getElementById('pct_tareas').value = porcentajes.promedio_tareas || 70;
-        document.getElementById('pct_proyecto').value = porcentajes.proyecto || 15;
-        document.getElementById('pct_examen').value = porcentajes.examen || 15;
+        document.getElementById('pct_tareas').value = porcentajes.promedio_tareas ?? 70;
+        document.getElementById('pct_proyecto').value = porcentajes.proyecto ?? 15;
+        document.getElementById('pct_examen').value = porcentajes.examen ?? 15;
         
         // Cargar materias en el select
         const selectMateria = document.getElementById('materia_notas');
@@ -157,20 +157,20 @@ async function cargarPorcentajesConfig() {
             data.porcentajes.forEach(row => {
                 porcentajes[row.concepto] = parseFloat(row.porcentaje);
             });
-            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas || 70;
-            document.getElementById('pct_proyecto').value = porcentajes.proyecto || 15;
-            document.getElementById('pct_examen').value = porcentajes.examen || 15;
+            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas ?? 70;
+            document.getElementById('pct_proyecto').value = porcentajes.proyecto ?? 15;
+            document.getElementById('pct_examen').value = porcentajes.examen ?? 15;
             badge.style.display = 'inline';
             badge.textContent = 'Usando porcentajes globales';
         } else {
-            document.getElementById('pct_tareas').value = data.promedio_tareas || 70;
-            document.getElementById('pct_proyecto').value = data.proyecto || 15;
-            document.getElementById('pct_examen').value = data.examen || 15;
             porcentajes = {
-                promedio_tareas: parseFloat(data.promedio_tareas) || 70,
-                proyecto: parseFloat(data.proyecto) || 15,
-                examen: parseFloat(data.examen) || 15
+                promedio_tareas: parseFloat(data.promedio_tareas) ?? 70,
+                proyecto: parseFloat(data.proyecto) ?? 15,
+                examen: parseFloat(data.examen) ?? 15
             };
+            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas;
+            document.getElementById('pct_proyecto').value = porcentajes.proyecto;
+            document.getElementById('pct_examen').value = porcentajes.examen;
             badge.style.display = 'inline';
             badge.textContent = 'Personalizados';
         }
