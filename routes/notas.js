@@ -19,15 +19,23 @@ router.get('/porcentajes', async (req, res) => {
     }
 });
 
-// Obtener porcentajes de un curso específico
-router.get('/porcentajes/curso/:curso', async (req, res) => {
+// Obtener porcentajes por materia, curso, paralelo y especialidad
+router.get('/porcentajes/config', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
+    const { materia_id, curso, paralelo, especialidad } = req.query;
     try {
-        const [rows] = await db.query(
-            'SELECT * FROM configuracion_porcentajes_curso WHERE curso = ? AND school_id = ?',
-            [req.params.curso, user.school_id]
-        );
+        let query = 'SELECT * FROM configuracion_porcentajes_materia_curso WHERE materia_id = ? AND curso = ? AND paralelo = ? AND school_id = ?';
+        let params = [materia_id, curso, paralelo, user.school_id];
+        
+        if (especialidad) {
+            query += ' AND especialidad = ?';
+            params.push(especialidad);
+        } else {
+            query += ' AND especialidad IS NULL';
+        }
+        
+        const [rows] = await db.query(query, params);
         if (rows.length > 0) {
             res.json(rows[0]);
         } else {
@@ -39,22 +47,23 @@ router.get('/porcentajes/curso/:curso', async (req, res) => {
     }
 });
 
-// Guardar porcentajes para un curso específico
-router.post('/porcentajes/curso/:curso', async (req, res) => {
+// Guardar porcentajes por materia, curso, paralelo y especialidad
+router.post('/porcentajes/config', async (req, res) => {
     const db = req.db;
     const user = req.session.user;
-    const { promedio_tareas, proyecto, examen } = req.body;
+    const { materia_id, curso, paralelo, especialidad, promedio_tareas, proyecto, examen } = req.body;
     try {
         await db.query(
-            `INSERT INTO configuracion_porcentajes_curso (curso, promedio_tareas, proyecto, examen, school_id)
-             VALUES (?, ?, ?, ?, ?)
+            `INSERT INTO configuracion_porcentajes_materia_curso 
+             (materia_id, curso, paralelo, especialidad, promedio_tareas, proyecto, examen, school_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE 
                 promedio_tareas = VALUES(promedio_tareas),
                 proyecto = VALUES(proyecto),
                 examen = VALUES(examen)`,
-            [req.params.curso, promedio_tareas, proyecto, examen, user.school_id]
+            [materia_id, curso, paralelo, especialidad || null, promedio_tareas, proyecto, examen, user.school_id]
         );
-        res.json({ message: `Porcentajes guardados para el curso ${req.params.curso}` });
+        res.json({ message: 'Porcentajes guardados' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -289,30 +298,38 @@ router.post('/grupo/:grupo_id/trimestre/:trimestre/multiple', async (req, res) =
 
 // Función para calcular el promedio trimestral
 async function calcularPromedio(conn, grupo_id, trimestre) {
-    // Obtener curso del grupo
+    // Obtener materia_id, curso, paralelo, especialidad del grupo
     const [grupoInfo] = await conn.query(
-        'SELECT curso FROM grupos WHERE id = ? LIMIT 1',
+        'SELECT g.materia_id, g.curso, g.paralelo, g.especialidad, m.nombre_materia FROM grupos g LEFT JOIN materias m ON g.materia_id = m.id WHERE g.id = ? LIMIT 1',
         [grupo_id]
     );
     
     let porcentajes = {};
     
-    // Intentar obtener porcentajes específicos del curso
-    if (grupoInfo.length > 0 && grupoInfo[0].curso) {
-        const [cursoPct] = await conn.query(
-            'SELECT promedio_tareas, proyecto, examen FROM configuracion_porcentajes_curso WHERE curso = ?',
-            [grupoInfo[0].curso]
-        );
-        if (cursoPct.length > 0) {
+    // Intentar obtener porcentajes específicos por materia+curso+paralelo+especialidad
+    if (grupoInfo.length > 0 && grupoInfo[0].materia_id) {
+        const g = grupoInfo[0];
+        let query = 'SELECT promedio_tareas, proyecto, examen FROM configuracion_porcentajes_materia_curso WHERE materia_id = ? AND curso = ? AND paralelo = ?';
+        let params = [g.materia_id, g.curso, g.paralelo];
+        
+        if (g.especialidad) {
+            query += ' AND especialidad = ?';
+            params.push(g.especialidad);
+        } else {
+            query += ' AND especialidad IS NULL';
+        }
+        
+        const [configPct] = await conn.query(query, params);
+        if (configPct.length > 0) {
             porcentajes = {
-                promedio_tareas: parseFloat(cursoPct[0].promedio_tareas),
-                proyecto: parseFloat(cursoPct[0].proyecto),
-                examen: parseFloat(cursoPct[0].examen)
+                promedio_tareas: parseFloat(configPct[0].promedio_tareas),
+                proyecto: parseFloat(configPct[0].proyecto),
+                examen: parseFloat(configPct[0].examen)
             };
         }
     }
     
-    // Si no hay porcentajes específicos del curso, usar los globales
+    // Si no hay porcentajes específicos, usar los globales
     if (!porcentajes.promedio_tareas) {
         const [pctRows] = await conn.query('SELECT concepto, porcentaje FROM configuracion_porcentajes');
         pctRows.forEach(row => {

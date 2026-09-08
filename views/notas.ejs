@@ -29,37 +29,58 @@
                     </button>
                     <div class="collapse mt-2" id="configPorcentajes">
                         <div class="card card-body">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Curso (dejar vacío para porcentajes globales)</label>
-                                    <select class="form-select" id="curso_porcentajes" onchange="cargarPorcentajesCurso()">
-                                        <option value="">Porcentajes globales</option>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Materia</label>
+                                    <select class="form-select" id="pct_materia" onchange="cargarPorcentajesConfig()">
+                                        <option value="">Seleccionar...</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6 d-flex align-items-end">
-                                    <span id="badgePorcentajes" class="badge bg-info" style="display:none;">Porcentajes personalizados</span>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Curso</label>
+                                    <select class="form-select" id="pct_curso" onchange="cargarPorcentajesConfig()">
+                                        <option value="">Seleccionar...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Paralelo</label>
+                                    <select class="form-select" id="pct_paralelo" onchange="cargarPorcentajesConfig()">
+                                        <option value="">Seleccionar...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Especialidad</label>
+                                    <select class="form-select" id="pct_especialidad" onchange="cargarPorcentajesConfig()">
+                                        <option value="">Ninguna</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">Promedio Tareas (%)</label>
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label">Tareas (%)</label>
                                     <input type="number" class="form-control" id="pct_tareas" step="0.01" min="0" max="100" value="70">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label class="form-label">Proyecto (%)</label>
                                     <input type="number" class="form-control" id="pct_proyecto" step="0.01" min="0" max="100" value="15">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label class="form-label">Examen (%)</label>
                                     <input type="number" class="form-control" id="pct_examen" step="0.01" min="0" max="100" value="15">
                                 </div>
-                                <div class="col-md-3 d-flex align-items-end">
-                                    <button class="btn btn-success w-100" onclick="guardarPorcentajes()">
+                                <div class="col-md-2">
+                                    <span id="badgePorcentajes" class="badge bg-info" style="display:none;">Personalizados</span>
+                                </div>
+                                <div class="col-md-4 d-flex gap-2">
+                                    <button class="btn btn-success flex-grow-1" onclick="guardarPorcentajes()">
                                         <i class="fas fa-save me-1"></i>Guardar
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="limpiarPorcentajes()" title="Limpiar selección">
+                                        <i class="fas fa-times"></i>
                                     </button>
                                 </div>
                             </div>
-                            <small class="text-muted mt-2 d-block">Los porcentajes deben sumar 100%. Si no se asigna curso, se aplicarán globalmente.</small>
+                            <small class="text-muted mt-2 d-block">Seleccione materia, curso, paralelo y especialidad. Si no configura, se aplican porcentajes globales (70/15/15).</small>
                         </div>
                     </div>
                 </div>

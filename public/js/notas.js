@@ -50,15 +50,47 @@ async function cargarDatos() {
             selectMateria.appendChild(option);
         });
         
-        // Cargar cursos en el selector de porcentajes
-        const selectCursoPct = document.getElementById('curso_porcentajes');
-        selectCursoPct.innerHTML = '<option value="">Porcentajes globales</option>';
+        // Cargar selectores de porcentajes
+        const selectMateriaPct = document.getElementById('pct_materia');
+        selectMateriaPct.innerHTML = '<option value="">Seleccionar...</option>';
+        Object.keys(materiasUnicas).sort().forEach(nombre => {
+            const option = document.createElement('option');
+            option.value = nombre;
+            option.textContent = nombre;
+            selectMateriaPct.appendChild(option);
+        });
+        
+        // Cargar cursos únicos
+        const selectCursoPct = document.getElementById('pct_curso');
+        selectCursoPct.innerHTML = '<option value="">Seleccionar...</option>';
         const cursosUnicos = [...new Set(materiasData.map(m => m.curso))].sort();
         cursosUnicos.forEach(curso => {
             const option = document.createElement('option');
             option.value = curso;
             option.textContent = curso;
             selectCursoPct.appendChild(option);
+        });
+        
+        // Cargar paralelos únicos
+        const selectParaleloPct = document.getElementById('pct_paralelo');
+        selectParaleloPct.innerHTML = '<option value="">Seleccionar...</option>';
+        const paralelosUnicos = [...new Set(materiasData.map(m => m.paralelo).filter(Boolean))].sort();
+        paralelosUnicos.forEach(par => {
+            const option = document.createElement('option');
+            option.value = par;
+            option.textContent = par;
+            selectParaleloPct.appendChild(option);
+        });
+        
+        // Cargar especialidades únicas
+        const selectEspecialidadPct = document.getElementById('pct_especialidad');
+        selectEspecialidadPct.innerHTML = '<option value="">Ninguna</option>';
+        const especialidadesUnicas = [...new Set(materiasData.map(m => m.especialidad).filter(Boolean))].sort();
+        especialidadesUnicas.forEach(esp => {
+            const option = document.createElement('option');
+            option.value = esp;
+            option.textContent = esp;
+            selectEspecialidadPct.appendChild(option);
         });
     } catch (err) {
         console.error('Error:', err);
@@ -88,11 +120,14 @@ function cargarCursosPorMateria() {
     });
 }
 
-async function cargarPorcentajesCurso() {
-    const curso = document.getElementById('curso_porcentajes').value;
+async function cargarPorcentajesConfig() {
+    const nombreMateria = document.getElementById('pct_materia').value;
+    const curso = document.getElementById('pct_curso').value;
+    const paralelo = document.getElementById('pct_paralelo').value;
+    const especialidad = document.getElementById('pct_especialidad').value;
     const badge = document.getElementById('badgePorcentajes');
     
-    if (!curso) {
+    if (!nombreMateria || !curso || !paralelo) {
         // Cargar porcentajes globales
         try {
             const res = await fetch('/api/notas/porcentajes');
@@ -108,8 +143,15 @@ async function cargarPorcentajesCurso() {
         return;
     }
     
+    // Buscar materia_id por nombre
+    const materia = materiasData.find(m => m.nombre_materia === nombreMateria);
+    if (!materia) return;
+    
     try {
-        const res = await fetch(`/api/notas/porcentajes/curso/${encodeURIComponent(curso)}`);
+        let url = `/api/notas/porcentajes/config?materia_id=${materia.id}&curso=${encodeURIComponent(curso)}&paralelo=${encodeURIComponent(paralelo)}`;
+        if (especialidad) url += `&especialidad=${encodeURIComponent(especialidad)}`;
+        
+        const res = await fetch(url);
         const data = await res.json();
         if (data.global) {
             data.porcentajes.forEach(row => {
@@ -125,16 +167,29 @@ async function cargarPorcentajesCurso() {
             document.getElementById('pct_proyecto').value = data.proyecto || 15;
             document.getElementById('pct_examen').value = data.examen || 15;
             badge.style.display = 'inline';
-            badge.textContent = `Porcentajes personalizados para ${curso}`;
+            badge.textContent = 'Personalizados';
         }
     } catch (err) {}
+}
+
+function limpiarPorcentajes() {
+    document.getElementById('pct_materia').value = '';
+    document.getElementById('pct_curso').value = '';
+    document.getElementById('pct_paralelo').value = '';
+    document.getElementById('pct_especialidad').value = '';
+    document.getElementById('badgePorcentajes').style.display = 'none';
+    // Recargar porcentajes globales
+    cargarPorcentajesConfig();
 }
 
 async function guardarPorcentajes() {
     const pctTareas = document.getElementById('pct_tareas').value;
     const pctProyecto = document.getElementById('pct_proyecto').value;
     const pctExamen = document.getElementById('pct_examen').value;
-    const curso = document.getElementById('curso_porcentajes').value;
+    const nombreMateria = document.getElementById('pct_materia').value;
+    const curso = document.getElementById('pct_curso').value;
+    const paralelo = document.getElementById('pct_paralelo').value;
+    const especialidad = document.getElementById('pct_especialidad').value;
     
     const total = parseFloat(pctTareas) + parseFloat(pctProyecto) + parseFloat(pctExamen);
     
@@ -144,27 +199,37 @@ async function guardarPorcentajes() {
     
     try {
         let url, method;
-        if (curso) {
-            url = `/api/notas/porcentajes/curso/${encodeURIComponent(curso)}`;
+        if (nombreMateria && curso && paralelo) {
+            const materia = materiasData.find(m => m.nombre_materia === nombreMateria);
+            if (!materia) return;
+            url = '/api/notas/porcentajes/config';
             method = 'POST';
         } else {
             url = '/api/notas/porcentajes';
             method = 'PUT';
         }
         
+        const body = method === 'POST' ? {
+            materia_id: materiasData.find(m => m.nombre_materia === nombreMateria)?.id,
+            curso, paralelo, especialidad: especialidad || null,
+            promedio_tareas: parseFloat(pctTareas),
+            proyecto: parseFloat(pctProyecto),
+            examen: parseFloat(pctExamen)
+        } : {
+            promedio_tareas: parseFloat(pctTareas),
+            proyecto: parseFloat(pctProyecto),
+            examen: parseFloat(pctExamen)
+        };
+        
         const response = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                promedio_tareas: parseFloat(pctTareas),
-                proyecto: parseFloat(pctProyecto),
-                examen: parseFloat(pctExamen)
-            })
+            body: JSON.stringify(body)
         });
         
         const data = await response.json();
         if (response.ok) {
-            showNotification(curso ? `Porcentajes guardados para ${curso}` : 'Porcentajes globales guardados', 'success');
+            showNotification(method === 'POST' ? 'Porcentajes guardados para esta configuración' : 'Porcentajes globales guardados', 'success');
             porcentajes = {
                 promedio_tareas: parseFloat(pctTareas),
                 proyecto: parseFloat(pctProyecto),
