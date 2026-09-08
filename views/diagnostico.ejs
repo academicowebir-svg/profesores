@@ -54,7 +54,12 @@
                 <div class="card" id="tablaDiagCard" style="display: none;">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span>Diagnostico - <span id="nombreGrupoDiag"></span></span>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <label class="form-label mb-0 me-1 fw-bold small">Calculo:</label>
+                            <select class="form-select form-select-sm" id="modo_calculo" style="width:auto" onchange="cambiarModoCalculo()">
+                                <option value="promedio">Promedio Normal (sobre 10)</option>
+                                <option value="suma">Suma de Destrezas (total)</option>
+                            </select>
                             <button class="btn btn-sm btn-success" onclick="agregarDestreza()">
                                 <i class="fas fa-plus"></i> Agregar Destreza
                             </button>
@@ -123,6 +128,25 @@
         let diagnosticosExistentes = [];
         let numDestrezas = 3;
         let currentMateriaInfo = null;
+
+        function getModoCalculo() {
+            return document.getElementById('modo_calculo')?.value || 'promedio';
+        }
+
+        function calcularTotalNotas(notas) {
+            const modo = getModoCalculo();
+            const vals = notas.filter(d => d !== null && d !== undefined);
+            if (vals.length === 0) return 0;
+            if (modo === 'suma') {
+                return parseFloat(vals.reduce((sum, d) => sum + parseFloat(d), 0).toFixed(2));
+            } else {
+                return parseFloat((vals.reduce((sum, d) => sum + parseFloat(d), 0) / vals.length).toFixed(2));
+            }
+        }
+
+        function cambiarModoCalculo() {
+            renderTablaDiag();
+        }
 
         function getDescripcion(total) {
             if (total >= 9.00) return 'Domina los aprendizajes';
@@ -256,7 +280,8 @@
             for (let i = 1; i <= numDestrezas; i++) {
                 headerRow2 += `<th class="text-center th-destreza"><small class="fw-bold">D${i}</small></th>`;
             }
-            headerRow2 += '<th class="text-center" style="min-width:50px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Total</div></th>';
+            const modoLabel = getModoCalculo() === 'suma' ? 'Suma' : 'Promedio';
+            headerRow2 += `<th class="text-center" style="min-width:50px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Total (${modoLabel})</div></th>`;
             headerRow2 += '<th class="text-center" style="min-width:80px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Descripcion</div></th>';
 
             thead.innerHTML = `<tr>${headerRow1}</tr><tr>${headerRow2}</tr>`;
@@ -275,8 +300,7 @@
 
                 let total = 0;
                 if (destrezasExistentes.length > 0) {
-                    const vals = destrezasExistentes.filter(d => d !== null && d !== undefined);
-                    total = vals.length > 0 ? vals.reduce((sum, d) => sum + parseFloat(d), 0) / vals.length : 0;
+                    total = calcularTotalNotas(destrezasExistentes);
                 }
                 total = parseFloat(total.toFixed(2));
                 const desc = getDescripcion(total);
@@ -348,20 +372,25 @@
             const tr = input.closest('tr');
             const estId = input.dataset.estudiante;
             const inputs = tr.querySelectorAll('.nota-input');
-            let suma = 0, count = 0;
+            let count = 0;
             inputs.forEach(inp => {
                 const v = parseFloat(inp.value);
-                if (!isNaN(v)) { suma += v; count++; }
+                if (!isNaN(v)) count++;
             });
 
             const totalEl = tr.querySelector(`.total-${estId}`);
             const descEl = tr.querySelector(`.desc-${estId}`);
 
             if (count > 0) {
-                const total = parseFloat((suma / count).toFixed(2));
-                totalEl.textContent = total.toFixed(2);
+                const notas = [];
+                inputs.forEach(inp => {
+                    const v = parseFloat(inp.value);
+                    notas.push(isNaN(v) ? null : v);
+                });
+                const total = calcularTotalNotas(notas);
+                totalEl.textContent = total > 0 ? total.toFixed(2) : '-';
                 totalEl.className = `text-center total-cell ${colorNota(total)} total-${estId}`;
-                descEl.textContent = getDescripcion(total);
+                descEl.textContent = total > 0 ? getDescripcion(total) : '-';
                 descEl.className = `text-center fw-bold ${getDescClass(total)} desc-${estId}`;
             } else {
                 totalEl.textContent = '-';
@@ -416,8 +445,7 @@
                 const valoresValidos = destrezas.filter(d => d !== null);
                 if (valoresValidos.length === 0) return;
 
-                const suma = destrezas.reduce((sum, d) => sum + (d || 0), 0);
-                const total = parseFloat((suma / destrezas.length).toFixed(2));
+                const total = calcularTotalNotas(destrezas);
 
                 diagnosticos.push({
                     estudiante_id: est.id,
