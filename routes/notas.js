@@ -355,26 +355,41 @@ async function calcularPromedio(conn, grupo_id, trimestre) {
     );
     const notaExamen = examenRows[0].nota ? parseFloat(examenRows[0].nota) : null;
 
-    // Solo calcular nota final si tiene proyecto Y examen
-    if (notaProyecto === null || notaExamen === null) {
-        await conn.query(`
-            INSERT INTO promedios_trimestrales (grupo_id, trimestre, promedio_tareas, nota_proyecto, nota_examen, nota_final)
-            VALUES (?, ?, ?, ?, ?, NULL)
-            ON DUPLICATE KEY UPDATE 
-                promedio_tareas = VALUES(promedio_tareas),
-                nota_proyecto = VALUES(nota_proyecto),
-                nota_examen = VALUES(nota_examen),
-                nota_final = NULL
-        `, [grupo_id, trimestre, promedioTareas, notaProyecto, notaExamen]);
-        return;
-    }
+    const pctT = porcentajes.promedio_tareas || 0;
+    const pctP = porcentajes.proyecto || 0;
+    const pctE = porcentajes.examen || 0;
+    const totalPct = pctT + pctP + pctE;
 
-    let notaFinal = 0;
-    if (promedioTareas !== null) {
-        notaFinal += promedioTareas * (porcentajes.promedio_tareas / 100);
+    // Calcular nota final solo con componentes que tienen porcentaje > 0
+    let notaFinal = null;
+    
+    if (totalPct > 0) {
+        let sumaPonderada = 0;
+        let divisor = 0;
+        
+        if (pctT > 0 && promedioTareas !== null) {
+            sumaPonderada += promedioTareas * (pctT / 100);
+            divisor += pctT;
+        }
+        if (pctP > 0 && notaProyecto !== null) {
+            sumaPonderada += notaProyecto * (pctP / 100);
+            divisor += pctP;
+        }
+        if (pctE > 0 && notaExamen !== null) {
+            sumaPonderada += notaExamen * (pctE / 100);
+            divisor += pctE;
+        }
+        
+        // Solo calcular si todos los componentes obligatorios (pct > 0) tienen nota
+        const todosConNotas = 
+            (pctT === 0 || promedioTareas !== null) &&
+            (pctP === 0 || notaProyecto !== null) &&
+            (pctE === 0 || notaExamen !== null);
+        
+        if (todosConNotas && divisor > 0) {
+            notaFinal = divisor === 100 ? sumaPonderada : sumaPonderada * 100 / divisor;
+        }
     }
-    notaFinal += notaProyecto * (porcentajes.proyecto / 100);
-    notaFinal += notaExamen * (porcentajes.examen / 100);
 
     await conn.query(`
         INSERT INTO promedios_trimestrales (grupo_id, trimestre, promedio_tareas, nota_proyecto, nota_examen, nota_final)
@@ -384,7 +399,7 @@ async function calcularPromedio(conn, grupo_id, trimestre) {
             nota_proyecto = VALUES(nota_proyecto),
             nota_examen = VALUES(nota_examen),
             nota_final = VALUES(nota_final)
-    `, [grupo_id, trimestre, promedioTareas, notaProyecto, notaExamen, parseFloat(notaFinal.toFixed(2))]);
+    `, [grupo_id, trimestre, promedioTareas, notaProyecto, notaExamen, notaFinal !== null ? parseFloat(notaFinal.toFixed(2)) : null]);
 }
 
 // Calcular promedios para todos los estudiantes de un grupo

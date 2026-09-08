@@ -392,10 +392,23 @@ async function cargarTablaNotas() {
                         const er = examER.length > 0 ? examER[0] : 0;
                         const examFinal = examNota.length > 0 ? Math.max(nE, (nE + dre + er) / 3) : 0;
                         
-                        // Solo calcular nota del trimestre si tiene proyecto Y examen
+                        // Calcular nota del trimestre solo con componentes que tienen porcentaje > 0
+                        const pctTLocal = porcentajes.promedio_tareas || 0;
+                        const pctPLocal = porcentajes.proyecto || 0;
+                        const pctELocal = porcentajes.examen || 0;
+                        const totalPctLocal = pctTLocal + pctPLocal + pctELocal;
+                        
                         let notaTrim = 0;
-                        if (proyFinal > 0 && examFinal > 0) {
-                            notaTrim = (promTareas * porcentajes.promedio_tareas + proyFinal * porcentajes.proyecto + examFinal * porcentajes.examen) / 100;
+                        if (totalPctLocal > 0) {
+                            let sumaLocal = 0;
+                            let divLocal = 0;
+                            if (pctTLocal > 0 && promTareas > 0) { sumaLocal += promTareas * pctTLocal / 100; divLocal += pctTLocal; }
+                            if (pctPLocal > 0 && proyFinal > 0) { sumaLocal += proyFinal * pctPLocal / 100; divLocal += pctPLocal; }
+                            if (pctELocal > 0 && examFinal > 0) { sumaLocal += examFinal * pctELocal / 100; divLocal += pctELocal; }
+                            const todosOk = (pctTLocal === 0 || promTareas > 0) && (pctPLocal === 0 || proyFinal > 0) && (pctELocal === 0 || examFinal > 0);
+                            if (todosOk && divLocal > 0) {
+                                notaTrim = divLocal === 100 ? sumaLocal : sumaLocal * 100 / divLocal;
+                            }
                         }
                         promediosTrimestrales[t - 1] = notaTrim;
                         if (t === 1) avgT1.push(notaTrim);
@@ -489,47 +502,75 @@ async function cargarTablaNotas() {
             document.getElementById('nombreGrupoSeleccionado').textContent = select.options[select.selectedIndex].text;
         }
 
-        // Build header
+        // Build header - ocultar columnas con 0%
         const thead = document.getElementById('tablaNotasHead');
         let headerRow1 = '<th>Estudiante</th>';
         let headerRow2 = '<th></th>';
         
-        if (tareasCount > 0) {
-            headerRow1 += `<th class="text-center" colspan="${tareasCount + 2}">Notas Clase</th>`;
-            for (let i = 1; i <= tareasCount; i++) {
-                const nombre = tareasNombres[i] || `T${i}`;
-                headerRow2 += `<th class="text-center" style="min-width:50px">
-                    <div style="writing-mode:vertical-lr;transform:rotate(180deg);white-space:nowrap">
-                        <small class="fw-bold">${nombre}</small>
-                    </div>
-                    <div class="btn-group btn-group-sm mt-1" style="font-size:10px">
-                        <button class="btn btn-outline-light btn-sm py-0 px-1" onclick="renombrarTarea(${i})" title="Renombrar"><i class="fas fa-pen"></i></button>
-                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="eliminarColumnaTarea(${i})" title="Eliminar"><i class="fas fa-times"></i></button>
-                    </div>
-                </th>`;
+        const pctT = porcentajes.promedio_tareas || 0;
+        const pctP = porcentajes.proyecto || 0;
+        const pctE = porcentajes.examen || 0;
+        
+        if (pctT > 0) {
+            if (tareasCount > 0) {
+                headerRow1 += `<th class="text-center" colspan="${tareasCount + 2}">Notas Clase</th>`;
+                for (let i = 1; i <= tareasCount; i++) {
+                    const nombre = tareasNombres[i] || `T${i}`;
+                    headerRow2 += `<th class="text-center" style="min-width:50px">
+                        <div style="writing-mode:vertical-lr;transform:rotate(180deg);white-space:nowrap">
+                            <small class="fw-bold">${nombre}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm mt-1" style="font-size:10px">
+                            <button class="btn btn-outline-light btn-sm py-0 px-1" onclick="renombrarTarea(${i})" title="Renombrar"><i class="fas fa-pen"></i></button>
+                            <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="eliminarColumnaTarea(${i})" title="Eliminar"><i class="fas fa-times"></i></button>
+                        </div>
+                    </th>`;
+                }
+                headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Promedio Clase</div></th>`;
+                headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${pctT}%</div></th>`;
+            } else {
+                headerRow1 += `<th class="text-center" colspan="3">Notas Clase ${pctT}%</th>`;
+                headerRow2 += `<th class="text-center"></th>`;
+                headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Promedio Clase</div></th>`;
+                headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${pctT}%</div></th>`;
             }
-            headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Promedio Clase</div></th>`;
-            headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${porcentajes.promedio_tareas}%</div></th>`;
         } else {
-            headerRow1 += `<th class="text-center" colspan="3">Notas Clase ${porcentajes.promedio_tareas}%</th>`;
-            headerRow2 += `<th class="text-center"></th>`;
-            headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Promedio Clase</div></th>`;
-            headerRow2 += `<th class="text-center" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${porcentajes.promedio_tareas}%</div></th>`;
+            headerRow1 += `<th class="text-center text-muted" colspan="3"><s>Notas Clase 0%</s></th>`;
+            headerRow2 += `<th class="text-center text-muted" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Prom.</s></div></th>`;
+            headerRow2 += `<th class="text-center text-muted" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>0%</s></div></th>`;
         }
         
-        headerRow1 += '<th class="text-center table-info" colspan="5">Proyecto</th>';
-        headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Nota Proyecto</div></th>';
-        headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Deber Rec. Proy.</div></th>';
-        headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Proyecto Recup.</div></th>';
-        headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Proyecto Final</div></th>';
-        headerRow2 += `<th class="text-center table-info" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${porcentajes.proyecto}%</div></th>`;
+        if (pctP > 0) {
+            headerRow1 += '<th class="text-center table-info" colspan="5">Proyecto</th>';
+            headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Nota Proyecto</div></th>';
+            headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Deber Rec. Proy.</div></th>';
+            headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Proyecto Recup.</div></th>';
+            headerRow2 += '<th class="text-center table-info" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Proyecto Final</div></th>';
+            headerRow2 += `<th class="text-center table-info" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${pctP}%</div></th>`;
+        } else {
+            headerRow1 += '<th class="text-center text-muted" colspan="5"><s>Proyecto 0%</s></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Proy.</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>D.R.</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Rec.</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Final</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>0%</s></div></th>';
+        }
         
-        headerRow1 += '<th class="text-center table-warning" colspan="5">Examen</th>';
-        headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Nota Examen</div></th>';
-        headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Deber Rec. Exa.</div></th>';
-        headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Examen Rec.</div></th>';
-        headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Examen Final</div></th>';
-        headerRow2 += `<th class="text-center table-warning" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${porcentajes.examen}%</div></th>`;
+        if (pctE > 0) {
+            headerRow1 += '<th class="text-center table-warning" colspan="5">Examen</th>';
+            headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Nota Examen</div></th>';
+            headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Deber Rec. Exa.</div></th>';
+            headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Examen Rec.</div></th>';
+            headerRow2 += '<th class="text-center table-warning" style="min-width:45px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">Examen Final</div></th>';
+            headerRow2 += `<th class="text-center table-warning" style="min-width:35px"><div style="writing-mode:vertical-lr;transform:rotate(180deg)">${pctE}%</div></th>`;
+        } else {
+            headerRow1 += '<th class="text-center text-muted" colspan="5"><s>Examen 0%</s></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Exa.</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>D.R.</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Rec.</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>Final</s></div></th>';
+            headerRow2 += '<th class="text-center text-muted"><div style="writing-mode:vertical-lr;transform:rotate(180deg)"><s>0%</s></div></th>';
+        }
         
         headerRow1 += '<th class="text-center bg-success-subtle text-dark">Nota Final</th>';
         headerRow2 += '<th class="text-center bg-success-subtle text-dark"></th>';
@@ -555,14 +596,22 @@ async function cargarTablaNotas() {
             const esInactivo = est.activo === 0;
             const disabledAttr = esInactivo ? 'disabled' : '';
             const estiloInactivo = esInactivo ? 'opacity:0.5;background:#e9ecef' : '';
+            const estiloBloqueado = 'opacity:0.4;background:#e9ecef;pointer-events:none;';
+            const disabledTareas = (pctT === 0) ? 'disabled' : disabledAttr;
+            const disabledProy = (pctP === 0) ? 'disabled' : disabledAttr;
+            const disabledExam = (pctE === 0) ? 'disabled' : disabledAttr;
+            const estiloTareas = (pctT === 0) ? estiloBloqueado : estiloInactivo;
+            const estiloProy = (pctP === 0) ? estiloBloqueado : estiloInactivo;
+            const estiloExam = (pctE === 0) ? estiloBloqueado : estiloInactivo;
+            
             for (let i = 0; i < tareasCount; i++) {
                 const t = tareasPorIndice[i];
                 const val = t ? parseFloat(t.nota).toFixed(1) : '';
                 const tareaId = t ? t.id : '';
                 const comentario = t && t.comentario ? t.comentario : '';
                 const tieneComentario = comentario ? 'text-warning' : '';
-                taskInputs += `<td class="text-center position-relative" style="${estiloInactivo}">
-                    <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${val}" data-tipo="tarea" data-idx="${i}" data-estudiante="${est.id}" data-nota-id="${tareaId}" onchange="calcularFila(this)" ${disabledAttr}>
+                taskInputs += `<td class="text-center position-relative" style="${estiloTareas}">
+                    <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${val}" data-tipo="tarea" data-idx="${i}" data-estudiante="${est.id}" data-nota-id="${tareaId}" onchange="calcularFila(this)" ${disabledTareas}>
                     <i class="fas fa-comment ${tieneComentario} position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                         data-nota-id="${tareaId}"
                         data-estudiante="${est.nombres_apellidos}"
@@ -612,9 +661,44 @@ async function cargarTablaNotas() {
             const tieneExam = examFinal !== '';
             let notaFinal = 0;
             let notaFinalCompleta = false;
-            if (tieneProy && tieneExam && promTareas) {
-                notaFinal = parseFloat(pctTareasVal) + parseFloat(pctProyVal) + parseFloat(pctExamVal);
-                notaFinalCompleta = true;
+            if (pctT > 0 && pctP > 0 && pctE > 0) {
+                if (tieneProy && tieneExam && promTareas) {
+                    notaFinal = parseFloat(pctTareasVal) + parseFloat(pctProyVal) + parseFloat(pctExamVal);
+                    notaFinalCompleta = true;
+                }
+            } else if (pctT > 0 && pctP > 0 && pctE === 0) {
+                if (tieneProy && promTareas) {
+                    const totalPct = pctT + pctP;
+                    notaFinal = (parseFloat(pctTareasVal) + parseFloat(pctProyVal)) * 100 / totalPct;
+                    notaFinalCompleta = true;
+                }
+            } else if (pctT > 0 && pctP === 0 && pctE > 0) {
+                if (tieneExam && promTareas) {
+                    const totalPct = pctT + pctE;
+                    notaFinal = (parseFloat(pctTareasVal) + parseFloat(pctExamVal)) * 100 / totalPct;
+                    notaFinalCompleta = true;
+                }
+            } else if (pctT === 0 && pctP > 0 && pctE > 0) {
+                if (tieneProy && tieneExam) {
+                    const totalPct = pctP + pctE;
+                    notaFinal = (parseFloat(pctProyVal) + parseFloat(pctExamVal)) * 100 / totalPct;
+                    notaFinalCompleta = true;
+                }
+            } else if (pctT > 0 && pctP === 0 && pctE === 0) {
+                if (promTareas) {
+                    notaFinal = promTareas;
+                    notaFinalCompleta = true;
+                }
+            } else if (pctT === 0 && pctP > 0 && pctE === 0) {
+                if (tieneProy) {
+                    notaFinal = proyFinal;
+                    notaFinalCompleta = true;
+                }
+            } else if (pctT === 0 && pctP === 0 && pctE > 0) {
+                if (tieneExam) {
+                    notaFinal = examFinal;
+                    notaFinalCompleta = true;
+                }
             }
             const notaFinalStr = notaFinalCompleta ? notaFinal.toFixed(2) : '-';
             const notaFinalClass = colorNotaValor(notaFinalCompleta ? notaFinal : 0);
@@ -631,10 +715,10 @@ async function cargarTablaNotas() {
                 <tr data-estudiante="${est.id}" data-grupo-id="${est.grupo_id}" data-activo="${est.activo}" style="${estiloInactivo}">
                     <td>${nombreEstudiante(est.nombres_apellidos, est.discapacidad)}${esInactivo ? ' <span class="badge bg-secondary">INACTIVO</span>' : ''}</td>
                     ${taskInputs}
-                    <td class="text-center fw-bold prom-tareas ${colorNotaValor(promTareas)}" data-est="${est.id}">${promTareas}</td>
-                    <td class="text-center text-primary fw-bold pct-tareas" data-est="${est.id}">${pctTareasVal}</td>
-                    <td class="text-center position-relative" style="${estiloInactivo}">
-                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${proyNota}" data-tipo="proyecto" data-idx="0" data-estudiante="${est.id}" data-nota-id="${proyNotaId}" onchange="calcularFila(this)" ${disabledAttr}>
+                    <td class="text-center fw-bold prom-tareas ${pctT > 0 ? colorNotaValor(promTareas) : 'text-muted'}" data-est="${est.id}">${pctT > 0 ? promTareas : '<s>-</s>'}</td>
+                    <td class="text-center text-primary fw-bold pct-tareas" data-est="${est.id}">${pctT > 0 ? pctTareasVal : ''}</td>
+                    <td class="text-center position-relative" style="${estiloProy}">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${proyNota}" data-tipo="proyecto" data-idx="0" data-estudiante="${est.id}" data-nota-id="${proyNotaId}" onchange="calcularFila(this)" ${disabledProy}>
                         <i class="fas fa-comment ${tieneProyNotaCom} position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                             data-nota-id="${proyNotaId}"
                             data-estudiante="${est.nombres_apellidos}"
@@ -642,8 +726,8 @@ async function cargarTablaNotas() {
                             data-comentario="${proyNotaCom}"
                             onclick="abrirComentario(this)"></i>
                     </td>
-                    <td class="text-center position-relative" style="${estiloInactivo}">
-                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${proyDeberRec}" data-tipo="proyecto" data-idx="1" data-estudiante="${est.id}" data-nota-id="${proyDeberRecId}" onchange="calcularFila(this)" ${disabledAttr}>
+                    <td class="text-center position-relative" style="${estiloProy}">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${proyDeberRec}" data-tipo="proyecto" data-idx="1" data-estudiante="${est.id}" data-nota-id="${proyDeberRecId}" onchange="calcularFila(this)" ${disabledProy}>
                         <i class="fas fa-comment position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                             data-nota-id="${proyDeberRecId}"
                             data-estudiante="${est.nombres_apellidos}"
@@ -651,8 +735,8 @@ async function cargarTablaNotas() {
                             data-comentario=""
                             onclick="abrirComentario(this)"></i>
                     </td>
-                    <td class="text-center position-relative" style="${estiloInactivo}">
-                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${proyRec}" data-tipo="proyecto" data-idx="2" data-estudiante="${est.id}" data-nota-id="${proyRecId}" onchange="calcularFila(this)" ${disabledAttr}>
+                    <td class="text-center position-relative" style="${estiloProy}">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${proyRec}" data-tipo="proyecto" data-idx="2" data-estudiante="${est.id}" data-nota-id="${proyRecId}" onchange="calcularFila(this)" ${disabledProy}>
                         <i class="fas fa-comment position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                             data-nota-id="${proyRecId}"
                             data-estudiante="${est.nombres_apellidos}"
@@ -660,10 +744,10 @@ async function cargarTablaNotas() {
                             data-comentario=""
                             onclick="abrirComentario(this)"></i>
                     </td>
-                    <td class="text-center text-primary fw-bold pct-proyecto ${colorNotaValor(proyFinal)}" data-est="${est.id}">${proyFinal}</td>
-                    <td class="text-center text-primary fw-bold pct-proyecto-pct" data-est="${est.id}">${pctProyVal}</td>
-                    <td class="text-center position-relative" style="${estiloInactivo}">
-                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${examNota}" data-tipo="examen" data-idx="0" data-estudiante="${est.id}" data-nota-id="${examNotaId}" onchange="calcularFila(this)" ${disabledAttr}>
+                    <td class="text-center text-primary fw-bold pct-proyecto ${pctP > 0 ? colorNotaValor(proyFinal) : 'text-muted'}" data-est="${est.id}">${pctP > 0 ? proyFinal : '<s>-</s>'}</td>
+                    <td class="text-center text-primary fw-bold pct-proyecto-pct" data-est="${est.id}">${pctP > 0 ? pctProyVal : ''}</td>
+                    <td class="text-center position-relative" style="${estiloExam}">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${examNota}" data-tipo="examen" data-idx="0" data-estudiante="${est.id}" data-nota-id="${examNotaId}" onchange="calcularFila(this)" ${disabledExam}>
                         <i class="fas fa-comment ${tieneExamNotaCom} position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                             data-nota-id="${examNotaId}"
                             data-estudiante="${est.nombres_apellidos}"
@@ -671,8 +755,8 @@ async function cargarTablaNotas() {
                             data-comentario="${examNotaCom}"
                             onclick="abrirComentario(this)"></i>
                     </td>
-                    <td class="text-center position-relative" style="${estiloInactivo}">
-                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${examDre}" data-tipo="examen" data-idx="1" data-estudiante="${est.id}" data-nota-id="${examDreId}" onchange="calcularFila(this)" ${disabledAttr}>
+                    <td class="text-center position-relative" style="${estiloExam}">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${examDre}" data-tipo="examen" data-idx="1" data-estudiante="${est.id}" data-nota-id="${examDreId}" onchange="calcularFila(this)" ${disabledExam}>
                         <i class="fas fa-comment position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                             data-nota-id="${examDreId}"
                             data-estudiante="${est.nombres_apellidos}"
@@ -680,8 +764,8 @@ async function cargarTablaNotas() {
                             data-comentario=""
                             onclick="abrirComentario(this)"></i>
                     </td>
-                    <td class="text-center position-relative" style="${estiloInactivo}">
-                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${examEr}" data-tipo="examen" data-idx="2" data-estudiante="${est.id}" data-nota-id="${examErId}" onchange="calcularFila(this)" ${disabledAttr}>
+                    <td class="text-center position-relative" style="${estiloExam}">
+                        <input type="number" class="form-control form-control-sm nota-input text-center" style="width:60px" min="0" max="10" step="0.1" value="${examEr}" data-tipo="examen" data-idx="2" data-estudiante="${est.id}" data-nota-id="${examErId}" onchange="calcularFila(this)" ${disabledExam}>
                         <i class="fas fa-comment position-absolute btn-comentario" style="top:2px;right:2px;font-size:10px;cursor:pointer"
                             data-nota-id="${examErId}"
                             data-estudiante="${est.nombres_apellidos}"
@@ -689,8 +773,8 @@ async function cargarTablaNotas() {
                             data-comentario=""
                             onclick="abrirComentario(this)"></i>
                     </td>
-                    <td class="text-center text-primary fw-bold pct-examen ${colorNotaValor(examFinal)}" data-est="${est.id}">${examFinal}</td>
-                    <td class="text-center text-primary fw-bold pct-examen-pct" data-est="${est.id}">${pctExamVal}</td>
+                    <td class="text-center text-primary fw-bold pct-examen ${pctE > 0 ? colorNotaValor(examFinal) : 'text-muted'}" data-est="${est.id}">${pctE > 0 ? examFinal : '<s>-</s>'}</td>
+                    <td class="text-center text-primary fw-bold pct-examen-pct" data-est="${est.id}">${pctE > 0 ? pctExamVal : ''}</td>
                     <td class="text-center bg-success-subtle nota-final ${notaFinalClass}" data-est="${est.id}">${notaFinalStr}</td>
                     <td class="text-center bg-success-subtle fw-bold" data-est="${est.id}">${aprendizaje}</td>
                 </tr>
@@ -794,6 +878,11 @@ function calcularFila(input) {
     
     const tr = input.closest('tr');
     
+    const pctT = porcentajes.promedio_tareas || 0;
+    const pctP = porcentajes.proyecto || 0;
+    const pctE = porcentajes.examen || 0;
+    const totalPct = pctT + pctP + pctE;
+    
     // Get all task values
     const taskInputs = tr.querySelectorAll('input[data-tipo="tarea"]');
     let sumaTareas = 0, countTareas = 0;
@@ -803,11 +892,10 @@ function calcularFila(input) {
     });
     
     const promTareas = countTareas > 0 ? sumaTareas / countTareas : 0;
-    const pctTareas = promTareas * porcentajes.promedio_tareas / 100;
+    const pctTareas = promTareas * pctT / 100;
     
-    tr.querySelector('.prom-tareas').textContent = promTareas > 0 ? promTareas.toFixed(2) : '';
-    tr.querySelector('.prom-tareas').className = `text-center fw-bold prom-tareas ${colorNotaValor(promTareas)}`;
-    tr.querySelector('.pct-tareas').textContent = promTareas > 0 ? pctTareas.toFixed(2) : '';
+    tr.querySelector('.prom-tareas').textContent = pctT > 0 ? (promTareas > 0 ? promTareas.toFixed(2) : '') : '<s>-</s>';
+    tr.querySelector('.pct-tareas').textContent = pctT > 0 ? (promTareas > 0 ? pctTareas.toFixed(2) : '') : '';
     
     // Proyecto (3 inputs: nota, deber rec, proyecto rec)
     const proyInputs = tr.querySelectorAll('input[data-tipo="proyecto"]');
@@ -821,10 +909,9 @@ function calcularFila(input) {
         const proyProm = proyVals.reduce((s, v) => s + v, 0) / proyVals.length;
         proyFinal = (proyVals[0] && proyProm < proyVals[0]) ? proyVals[0] : proyProm;
     }
-    const pctProy = proyFinal * porcentajes.proyecto / 100;
-    tr.querySelector('.pct-proyecto').textContent = proyFinal > 0 ? proyFinal.toFixed(2) : '';
-    tr.querySelector('.pct-proyecto').className = `text-center text-primary fw-bold pct-proyecto ${colorNotaValor(proyFinal)}`;
-    tr.querySelector('.pct-proyecto-pct').textContent = proyFinal > 0 ? pctProy.toFixed(2) : '';
+    const pctProy = proyFinal * pctP / 100;
+    tr.querySelector('.pct-proyecto').textContent = pctP > 0 ? (proyFinal > 0 ? proyFinal.toFixed(2) : '') : '<s>-</s>';
+    tr.querySelector('.pct-proyecto-pct').textContent = pctP > 0 ? (proyFinal > 0 ? pctProy.toFixed(2) : '') : '';
     
     // Examen (3 inputs: nota, DRE, ER)
     const examInputs = tr.querySelectorAll('input[data-tipo="examen"]');
@@ -838,16 +925,53 @@ function calcularFila(input) {
         const examProm = examVals.reduce((s, v) => s + v, 0) / examVals.length;
         examFinal = (examVals[0] && examProm < examVals[0]) ? examVals[0] : examProm;
     }
-    const pctExam = examFinal * porcentajes.examen / 100;
-    tr.querySelector('.pct-examen').textContent = examFinal > 0 ? examFinal.toFixed(2) : '';
-    tr.querySelector('.pct-examen').className = `text-center text-primary fw-bold pct-examen ${colorNotaValor(examFinal)}`;
-    tr.querySelector('.pct-examen-pct').textContent = examFinal > 0 ? pctExam.toFixed(2) : '';
+    const pctExam = examFinal * pctE / 100;
+    tr.querySelector('.pct-examen').textContent = pctE > 0 ? (examFinal > 0 ? examFinal.toFixed(2) : '') : '<s>-</s>';
+    tr.querySelector('.pct-examen-pct').textContent = pctE > 0 ? (examFinal > 0 ? pctExam.toFixed(2) : '') : '';
     
-    // Nota final - solo si tiene proyecto Y examen
+    // Nota final - solo con componentes que tienen porcentaje > 0
     const nfEl = tr.querySelector('.nota-final');
-    const pctExamEl = tr.querySelector('.pct-examen-pct');
-    if (proyFinal > 0 && examFinal > 0 && promTareas > 0) {
-        const notaFinal = pctTareas + pctProy + pctExam;
+    let notaFinal = 0;
+    let notaFinalCompleta = false;
+    
+    if (pctT > 0 && pctP > 0 && pctE > 0) {
+        if (proyFinal > 0 && examFinal > 0 && promTareas > 0) {
+            notaFinal = pctTareas + pctProy + pctExam;
+            notaFinalCompleta = true;
+        }
+    } else if (pctT > 0 && pctP > 0 && pctE === 0) {
+        if (proyFinal > 0 && promTareas > 0) {
+            notaFinal = (pctTareas + pctProy) * 100 / totalPct;
+            notaFinalCompleta = true;
+        }
+    } else if (pctT > 0 && pctP === 0 && pctE > 0) {
+        if (examFinal > 0 && promTareas > 0) {
+            notaFinal = (pctTareas + pctExam) * 100 / totalPct;
+            notaFinalCompleta = true;
+        }
+    } else if (pctT === 0 && pctP > 0 && pctE > 0) {
+        if (proyFinal > 0 && examFinal > 0) {
+            notaFinal = (pctProy + pctExam) * 100 / totalPct;
+            notaFinalCompleta = true;
+        }
+    } else if (pctT > 0 && pctP === 0 && pctE === 0) {
+        if (promTareas > 0) {
+            notaFinal = promTareas;
+            notaFinalCompleta = true;
+        }
+    } else if (pctT === 0 && pctP > 0 && pctE === 0) {
+        if (proyFinal > 0) {
+            notaFinal = proyFinal;
+            notaFinalCompleta = true;
+        }
+    } else if (pctT === 0 && pctP === 0 && pctE > 0) {
+        if (examFinal > 0) {
+            notaFinal = examFinal;
+            notaFinalCompleta = true;
+        }
+    }
+    
+    if (notaFinalCompleta) {
         nfEl.textContent = notaFinal.toFixed(2);
         nfEl.className = `text-center bg-success-subtle nota-final ${colorNotaValor(notaFinal)}`;
     } else {
