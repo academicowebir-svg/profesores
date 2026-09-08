@@ -52,7 +52,7 @@ router.post('/estudiantes', async (req, res) => {
             cedula, nombres_apellidos, sexo, fecha_nacimiento, email,
             tipo_sangre, discapacidad, discapacidad_tipo,
             pais, provincia, ciudad, parroquia, direccion,
-            representante, cedula_representante, telefono_representante,
+            representante, cedula_representante, parentesco_representante, telefono_representante,
             email_representante, lugar_trabajo_representante,
             anio_lectivo, curso, paralelo, especialidad
         } = req.body;
@@ -97,15 +97,15 @@ router.post('/estudiantes', async (req, res) => {
                 numero_matricula, cedula, nombres_apellidos, sexo, fecha_nacimiento, edad, email,
                 tipo_sangre, discapacidad, discapacidad_tipo,
                 pais, provincia, ciudad, parroquia, direccion,
-                representante, cedula_representante, telefono_representante,
+                representante, cedula_representante, parentesco_representante, telefono_representante,
                 email_representante, lugar_trabajo_representante,
                 anio_lectivo, curso, paralelo, especialidad, school_id
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
                 numeroMatricula, cedula || null, nombres_apellidos, sexo, fecha_nacimiento || null, edad, email || null,
                 tipo_sangre || null, discapacidad || 'NO', discapacidad_tipo || null,
                 pais || null, provincia || null, ciudad || null, parroquia || null, direccion || null,
-                representante || null, cedula_representante || null, telefono_representante || null,
+                representante || null, cedula_representante || null, parentesco_representante || null, telefono_representante || null,
                 email_representante || null, lugar_trabajo_representante || null,
                 anio, curso || null, paralelo || null, especialidad || null, schoolId
             ]
@@ -126,7 +126,7 @@ router.put('/estudiantes/:id', async (req, res) => {
             cedula, nombres_apellidos, sexo, fecha_nacimiento, email,
             tipo_sangre, discapacidad, discapacidad_tipo,
             pais, provincia, ciudad, parroquia, direccion,
-            representante, cedula_representante, telefono_representante,
+            representante, cedula_representante, parentesco_representante, telefono_representante,
             email_representante, lugar_trabajo_representante,
             anio_lectivo, curso, paralelo, especialidad, activo
         } = req.body;
@@ -145,7 +145,7 @@ router.put('/estudiantes/:id', async (req, res) => {
                 cedula=?, nombres_apellidos=?, sexo=?, fecha_nacimiento=?, edad=?, email=?,
                 tipo_sangre=?, discapacidad=?, discapacidad_tipo=?,
                 pais=?, provincia=?, ciudad=?, parroquia=?, direccion=?,
-                representante=?, cedula_representante=?, telefono_representante=?,
+                representante=?, cedula_representante=?, parentesco_representante=?, telefono_representante=?,
                 email_representante=?, lugar_trabajo_representante=?,
                 anio_lectivo=?, curso=?, paralelo=?, especialidad=?, activo=?
             WHERE id=? AND school_id=?`,
@@ -153,7 +153,7 @@ router.put('/estudiantes/:id', async (req, res) => {
                 cedula, nombres_apellidos, sexo, fecha_nacimiento || null, edad, email || null,
                 tipo_sangre || null, discapacidad || 'NO', discapacidad_tipo || null,
                 pais || null, provincia || null, ciudad || null, parroquia || null, direccion || null,
-                representante || null, cedula_representante || null, telefono_representante || null,
+                representante || null, cedula_representante || null, parentesco_representante || null, telefono_representante || null,
                 email_representante || null, lugar_trabajo_representante || null,
                 anio_lectivo || null, curso || null, paralelo || null, especialidad || null,
                 activo !== undefined ? activo : 1, id, schoolId
