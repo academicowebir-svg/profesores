@@ -60,12 +60,42 @@
                     <div class="tab-pane fade show active" id="tabMaterias">
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <span><i class="fas fa-list me-1"></i>Materias Registradas</span>
+                                <span><i class="fas fa-list me-1"></i>Materias Registradas (<span id="contadorMaterias">0</span>)</span>
                                 <button class="btn btn-success btn-sm" onclick="abrirModalMateria()">
                                     <i class="fas fa-plus me-1"></i>Nueva Materia
                                 </button>
                             </div>
                             <div class="card-body">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-3">
+                                        <input type="text" class="form-control form-control-sm" id="filtroMateriaNombre" placeholder="Buscar materia..." oninput="filtrarMaterias()">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select class="form-select form-select-sm" id="filtroMateriaCurso" onchange="filtrarMaterias()">
+                                            <option value="">Todos los cursos</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select class="form-select form-select-sm" id="filtroMateriaParalelo" onchange="filtrarMaterias()">
+                                            <option value="">Todos los paralelos</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select class="form-select form-select-sm" id="filtroMateriaEspecialidad" onchange="filtrarMaterias()">
+                                            <option value="">Todas las especialidades</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select class="form-select form-select-sm" id="filtroMateriaDocente" onchange="filtrarMaterias()">
+                                            <option value="">Todos los docentes</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="limpiarFiltrosMaterias()" title="Limpiar filtros">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-sm table-hover">
                                         <thead class="table-dark text-center">
@@ -376,10 +406,49 @@
         }
 
         function renderizarMaterias() {
+            poblarFiltrosMaterias();
+            filtrarMaterias();
+        }
+
+        function poblarFiltrosMaterias() {
+            const cursos = [...new Set(materiasData.map(m => m.curso).filter(Boolean))].sort();
+            const paralelos = [...new Set(materiasData.map(m => m.paralelo).filter(Boolean))].sort();
+            const especialidades = [...new Set(materiasData.map(m => m.especialidad).filter(Boolean))].sort();
+            const docentes = [...new Set(materiasData.map(m => m.docente_nombre).filter(Boolean))].sort();
+
+            const fillSelect = (id, values, placeholder) => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = `<option value="">${placeholder}</option>`;
+                values.forEach(v => {
+                    sel.innerHTML += `<option value="${v}">${v}</option>`;
+                });
+            };
+            fillSelect('filtroMateriaCurso', cursos, 'Todos los cursos');
+            fillSelect('filtroMateriaParalelo', paralelos, 'Todos los paralelos');
+            fillSelect('filtroMateriaEspecialidad', especialidades, 'Todas las especialidades');
+            fillSelect('filtroMateriaDocente', docentes, 'Todos los docentes');
+        }
+
+        function filtrarMaterias() {
+            const nombre = document.getElementById('filtroMateriaNombre').value.toLowerCase();
+            const curso = document.getElementById('filtroMateriaCurso').value;
+            const paralelo = document.getElementById('filtroMateriaParalelo').value;
+            const especialidad = document.getElementById('filtroMateriaEspecialidad').value;
+            const docente = document.getElementById('filtroMateriaDocente').value;
+
+            const filtradas = materiasData.filter(m => {
+                if (nombre && !m.nombre_materia.toLowerCase().includes(nombre)) return false;
+                if (curso && m.curso !== curso) return false;
+                if (paralelo && m.paralelo !== paralelo) return false;
+                if (especialidad && (m.especialidad || '') !== especialidad) return false;
+                if (docente && (m.docente_nombre || '') !== docente) return false;
+                return true;
+            });
+
             const tbody = document.getElementById('cuerpoMaterias');
-            tbody.innerHTML = '';
-            materiasData.forEach((m, i) => {
-                tbody.innerHTML += `
+            let html = '';
+            filtradas.forEach((m, i) => {
+                html += `
                     <tr>
                         <td class="text-center">${i + 1}</td>
                         <td>${m.nombre_materia}</td>
@@ -393,14 +462,25 @@
                         </td>
                     </tr>`;
             });
+            tbody.innerHTML = html;
+            document.getElementById('contadorMaterias').textContent = filtradas.length;
             renderizarTablaAsignacionDocente();
+        }
+
+        function limpiarFiltrosMaterias() {
+            document.getElementById('filtroMateriaNombre').value = '';
+            document.getElementById('filtroMateriaCurso').value = '';
+            document.getElementById('filtroMateriaParalelo').value = '';
+            document.getElementById('filtroMateriaEspecialidad').value = '';
+            document.getElementById('filtroMateriaDocente').value = '';
+            filtrarMaterias();
         }
 
         function renderizarDocentes() {
             const tbody = document.getElementById('cuerpoDocentes');
-            tbody.innerHTML = '';
+            let html = '';
             docentesData.forEach((d, i) => {
-                tbody.innerHTML += `
+                html += `
                     <tr>
                         <td class="text-center">${i + 1}</td>
                         <td class="text-center">${d.cedula}</td>
@@ -412,13 +492,14 @@
                         </td>
                     </tr>`;
             });
+            tbody.innerHTML = html;
         }
 
         function renderizarTablaAsignacionDocente() {
             const tbody = document.getElementById('cuerpoAsignacionDocente');
-            tbody.innerHTML = '';
+            let html = '';
             materiasData.forEach(m => {
-                tbody.innerHTML += `
+                html += `
                     <tr>
                         <td>${m.nombre_materia}</td>
                         <td class="text-center">${m.curso} ${m.paralelo}${m.especialidad ? ' (' + m.especialidad + ')' : ''}</td>
@@ -430,6 +511,7 @@
                         </td>
                     </tr>`;
             });
+            tbody.innerHTML = html;
         }
 
         function poblarSelectMaterias() {
