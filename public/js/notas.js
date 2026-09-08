@@ -120,6 +120,32 @@ function cargarCursosPorMateria() {
     });
 }
 
+// Cargar porcentajes automáticamente para una materia+curso+paralelo+especialidad (sin UI)
+async function cargarPorcentajesAutomatico(materiaId, curso, paralelo, especialidad) {
+    try {
+        let url = `/api/notas/porcentajes/config?materia_id=${materiaId}&curso=${encodeURIComponent(curso)}&paralelo=${encodeURIComponent(paralelo)}`;
+        if (especialidad) url += `&especialidad=${encodeURIComponent(especialidad)}`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.global) {
+            // Usar globales
+            data.porcentajes.forEach(row => {
+                porcentajes[row.concepto] = parseFloat(row.porcentaje);
+            });
+        } else {
+            // Usar específicos
+            porcentajes = {
+                promedio_tareas: parseFloat(data.promedio_tareas) ?? 70,
+                proyecto: parseFloat(data.proyecto) ?? 15,
+                examen: parseFloat(data.examen) ?? 15
+            };
+        }
+    } catch (err) {
+        console.error('Error cargando porcentajes automáticos:', err);
+    }
+}
+
 async function cargarPorcentajesConfig() {
     const nombreMateria = document.getElementById('pct_materia').value;
     const curso = document.getElementById('pct_curso').value;
@@ -135,9 +161,9 @@ async function cargarPorcentajesConfig() {
             data.forEach(row => {
                 porcentajes[row.concepto] = parseFloat(row.porcentaje);
             });
-            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas || 70;
-            document.getElementById('pct_proyecto').value = porcentajes.proyecto || 15;
-            document.getElementById('pct_examen').value = porcentajes.examen || 15;
+            document.getElementById('pct_tareas').value = porcentajes.promedio_tareas ?? 70;
+            document.getElementById('pct_proyecto').value = porcentajes.proyecto ?? 15;
+            document.getElementById('pct_examen').value = porcentajes.examen ?? 15;
             badge.style.display = 'none';
         } catch (err) {}
         return;
@@ -267,12 +293,38 @@ function cargarEstudiantesNotas() {
     tareasCount = 0;
     tareasNombres = {};
     
-    const esPromFinal = trimestreVal === 'final';
-    document.getElementById('btnAgregarTarea').style.display = esPromFinal ? 'none' : 'inline-block';
-    document.getElementById('btnGuardarNotas').style.display = esPromFinal ? 'none' : 'inline-block';
+    // Buscar especialidad de la materia seleccionada
+    const materiaInfo = materiasData.find(m => m.id === currentMateriaId);
+    const especialidad = materiaInfo ? (materiaInfo.especialidad || '') : '';
     
-    document.getElementById('tablaNotasCard').style.display = 'block';
-    cargarTablaNotas();
+    // Auto-seleccionar dropdowns de configuración
+    if (materiaInfo) {
+        document.getElementById('pct_materia').value = materiaInfo.nombre_materia;
+        document.getElementById('pct_curso').value = curso;
+        document.getElementById('pct_paralelo').value = paralelo;
+        document.getElementById('pct_especialidad').value = especialidad;
+    }
+    
+    // Cargar porcentajes automáticamente para esta configuración
+    cargarPorcentajesAutomatico(currentMateriaId, curso, paralelo, especialidad).then(() => {
+        // Actualizar inputs de porcentajes en la UI
+        document.getElementById('pct_tareas').value = porcentajes.promedio_tareas ?? 70;
+        document.getElementById('pct_proyecto').value = porcentajes.proyecto ?? 15;
+        document.getElementById('pct_examen').value = porcentajes.examen ?? 15;
+        
+        // Mostrar badge si hay config específica
+        const badge = document.getElementById('badgePorcentajes');
+        badge.style.display = 'inline';
+        badge.textContent = 'Aplicado a este grupo';
+        badge.className = 'badge bg-success';
+        
+        const esPromFinal = trimestreVal === 'final';
+        document.getElementById('btnAgregarTarea').style.display = esPromFinal ? 'none' : 'inline-block';
+        document.getElementById('btnGuardarNotas').style.display = esPromFinal ? 'none' : 'inline-block';
+        
+        document.getElementById('tablaNotasCard').style.display = 'block';
+        cargarTablaNotas();
+    });
 }
 
 function agregarColumnaTarea() {
@@ -398,9 +450,9 @@ async function cargarTablaNotas() {
                         const examFinal = examNota.length > 0 ? Math.max(nE, (nE + dre + er) / 3) : 0;
                         
                         // Calcular nota del trimestre solo con componentes que tienen porcentaje > 0
-                        const pctTLocal = porcentajes.promedio_tareas || 0;
-                        const pctPLocal = porcentajes.proyecto || 0;
-                        const pctELocal = porcentajes.examen || 0;
+                        const pctTLocal = porcentajes.promedio_tareas ?? 0;
+                        const pctPLocal = porcentajes.proyecto ?? 0;
+                        const pctELocal = porcentajes.examen ?? 0;
                         const totalPctLocal = pctTLocal + pctPLocal + pctELocal;
                         
                         let notaTrim = 0;
@@ -512,9 +564,9 @@ async function cargarTablaNotas() {
         let headerRow1 = '<th>Estudiante</th>';
         let headerRow2 = '<th></th>';
         
-        const pctT = porcentajes.promedio_tareas || 0;
-        const pctP = porcentajes.proyecto || 0;
-        const pctE = porcentajes.examen || 0;
+        const pctT = porcentajes.promedio_tareas ?? 0;
+        const pctP = porcentajes.proyecto ?? 0;
+        const pctE = porcentajes.examen ?? 0;
         
         if (pctT > 0) {
             if (tareasCount > 0) {
@@ -883,9 +935,9 @@ function calcularFila(input) {
     
     const tr = input.closest('tr');
     
-    const pctT = porcentajes.promedio_tareas || 0;
-    const pctP = porcentajes.proyecto || 0;
-    const pctE = porcentajes.examen || 0;
+    const pctT = porcentajes.promedio_tareas ?? 0;
+    const pctP = porcentajes.proyecto ?? 0;
+    const pctE = porcentajes.examen ?? 0;
     const totalPct = pctT + pctP + pctE;
     
     // Get all task values

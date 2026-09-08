@@ -19,6 +19,21 @@ router.get('/porcentajes', async (req, res) => {
     }
 });
 
+// Obtener TODOS los porcentajes por materia+curso+paralelo+especialidad
+router.get('/porcentajes/config/all', async (req, res) => {
+    const db = req.db;
+    const user = req.session.user;
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM configuracion_porcentajes_materia_curso WHERE school_id = ?',
+            [user.school_id]
+        );
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Obtener porcentajes por materia, curso, paralelo y especialidad
 router.get('/porcentajes/config', async (req, res) => {
     const db = req.db;
@@ -355,9 +370,9 @@ async function calcularPromedio(conn, grupo_id, trimestre) {
     );
     const notaExamen = examenRows[0].nota ? parseFloat(examenRows[0].nota) : null;
 
-    const pctT = porcentajes.promedio_tareas || 0;
-    const pctP = porcentajes.proyecto || 0;
-    const pctE = porcentajes.examen || 0;
+    const pctT = porcentajes.promedio_tareas ?? 0;
+    const pctP = porcentajes.proyecto ?? 0;
+    const pctE = porcentajes.examen ?? 0;
     const totalPct = pctT + pctP + pctE;
 
     // Calcular nota final solo con componentes que tienen porcentaje > 0
