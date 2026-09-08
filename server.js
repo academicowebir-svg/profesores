@@ -190,6 +190,35 @@ app.use('/api/recuperacion', requireAuth, injectDB, recuperacionRoutes);
 app.use('/api/justificaciones', requireAuth, injectDB, justificacionesRoutes);
 app.use('/api/diagnostico', requireAuth, injectDB, diagnosticoRoutes);
 
+// Migración temporal: renombrar Soporte Tecnico → Soporte Informatico
+app.get('/api/migrate-rename-soporte', requireAuth, injectDB, async (req, res) => {
+    if (req.session.user.rol !== 'admin' && req.session.user.rol !== 'rector') {
+        return res.status(403).json({ error: 'Solo admin/rector' });
+    }
+    const db = req.db;
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        const r1 = await conn.query("UPDATE materias SET especialidad = 'Soporte Informatico' WHERE especialidad = 'Soporte Tecnico'");
+        const r2 = await conn.query("UPDATE estudiantes SET especialidad = 'Soporte Informatico' WHERE especialidad = 'Soporte Tecnico'");
+        const r3 = await conn.query("UPDATE cursos SET especialidades = REPLACE(especialidades, 'Soporte Tecnico', 'Soporte Informatico') WHERE especialidades LIKE '%Soporte Tecnico%'");
+        const r4 = await conn.query("UPDATE configuracion_porcentajes_materia_curso SET especialidad = 'Soporte Informatico' WHERE especialidad = 'Soporte Tecnico'");
+        await conn.commit();
+        res.json({
+            message: 'Renombrado exitosamente',
+            materias: r1[0].affectedRows,
+            estudiantes: r2[0].affectedRows,
+            cursos: r3[0].affectedRows,
+            porcentajes: r4[0].affectedRows
+        });
+    } catch (err) {
+        await conn.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        conn.release();
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
