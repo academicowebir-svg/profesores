@@ -17,7 +17,7 @@
         .desc-logro { color: #198754; font-weight: bold; }
         .desc-domina { color: #0d6efd; font-weight: bold; }
         .table td { vertical-align: middle; }
-        .th-destreza { writing-mode: vertical-lr; transform: rotate(180deg); white-space: nowrap; min-width: 50px; }
+        .th-destreza { white-space: nowrap; min-width: 50px; }
     </style>
 </head>
 <body>
@@ -313,10 +313,10 @@
             headerRow1 += `<th class="text-center" colspan="${numDestrezas + 2}">Destrezas (0-10)</th>`;
             for (let i = 1; i <= numDestrezas; i++) {
                 const nombre = nombresDestrezas[i] || `D${i}`;
-                headerRow2 += `<th class="text-center th-destreza">
-                    <div><small class="fw-bold">${nombre}</small></div>
-                    <div class="mt-1" style="writing-mode:horizontal-tb;transform:none">
-                        <button class="btn btn-outline-light btn-sm py-0 px-1" onclick="renombrarDestreza(${i})" title="Renombrar" style="font-size:10px"><i class="fas fa-pen"></i></button>
+                headerRow2 += `<th class="text-center th-destreza py-1">
+                    <div class="d-flex align-items-center justify-content-center gap-1">
+                        <small class="fw-bold">${nombre}</small>
+                        <button class="btn btn-link btn-sm p-0 text-muted" onclick="renombrarDestreza(${i})" title="Renombrar" style="font-size:10px;text-decoration:none"><i class="fas fa-pen"></i></button>
                     </div>
                 </th>`;
             }
