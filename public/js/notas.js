@@ -169,8 +169,8 @@ async function cargarPorcentajesConfig() {
         return;
     }
     
-    // Buscar materia_id por nombre
-    const materia = materiasData.find(m => m.nombre_materia === nombreMateria);
+    // Buscar materia_id por nombre + curso + paralelo + especialidad
+    const materia = materiasData.find(m => m.nombre_materia === nombreMateria && m.curso === curso && m.paralelo === paralelo && (m.especialidad || '') === (especialidad || ''));
     if (!materia) return;
     
     try {
@@ -231,7 +231,7 @@ async function guardarPorcentajes() {
     try {
         let url, method;
         if (nombreMateria && curso && paralelo) {
-            const materia = materiasData.find(m => m.nombre_materia === nombreMateria);
+            const materia = materiasData.find(m => m.nombre_materia === nombreMateria && m.curso === curso && m.paralelo === paralelo && (m.especialidad || '') === (especialidad || ''));
             if (!materia) return;
             url = '/api/notas/porcentajes/config';
             method = 'POST';
@@ -241,7 +241,7 @@ async function guardarPorcentajes() {
         }
         
         const body = method === 'POST' ? {
-            materia_id: materiasData.find(m => m.nombre_materia === nombreMateria)?.id,
+            materia_id: materiasData.find(m => m.nombre_materia === nombreMateria && m.curso === curso && m.paralelo === paralelo && (m.especialidad || '') === (especialidad || ''))?.id,
             curso, paralelo, especialidad: especialidad || null,
             promedio_tareas: parseFloat(pctTareas),
             proyecto: parseFloat(pctProyecto),
